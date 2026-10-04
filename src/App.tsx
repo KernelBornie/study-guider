@@ -8,12 +8,14 @@ import AdminPage from "@/pages/AdminPage";
 import DiagramsPage from "@/pages/DiagramsPage";
 import CalculatorsPage from "@/pages/CalculatorsPage";
 import AIPage from "@/pages/AIPage";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { Bot } from "lucide-react";
 
 export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
       <Navbar />
+      <OfflineIndicator />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-6">
         <Routes>

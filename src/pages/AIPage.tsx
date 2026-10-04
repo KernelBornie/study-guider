@@ -14,15 +14,22 @@ import {
   Copy,
   Check,
   Paperclip,
-  FileText
+  FileText,
+  WifiOff,
+  Wifi,
+  Cpu,
+  Layers
 } from "lucide-react";
 import FileUploader, { AttachedFile } from "@/components/FileUploader";
 import MermaidDiagram from "@/components/MermaidDiagram";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { generateOfflineTutorReply } from "@/services/aiTutorEngine";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   attachmentNames?: string[];
+  source?: "offline" | "cloud";
 }
 
 const SUGGESTIONS = [
@@ -32,14 +39,25 @@ const SUGGESTIONS = [
   "Calculate cyclomatic complexity for a program graph with E=21, N=17, P=5.",
   "Explain the defect removal cost model with a flowchart.",
   "What are the major differences between SQA and Quality Control (QC)?",
+  "Compare Walkthroughs, Fagan Inspections, and Formal Design Reviews.",
+  "Explain the safety-critical Insulin Pump software state machine.",
 ];
 
 export default function AIPage() {
+  const isOnline = useOnlineStatus();
+  const [offlineOnly, setOfflineOnly] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("unza_force_offline_ai") === "true";
+    } catch {
+      return false;
+    }
+  });
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [searchParams] = useSearchParams();
@@ -47,6 +65,16 @@ export default function AIPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const toggleOfflineMode = () => {
+    const next = !offlineOnly;
+    setOfflineOnly(next);
+    try {
+      localStorage.setItem("unza_force_offline_ai", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   const sendMessage = async (text: string) => {
     if ((!text.trim() && files.length === 0) || loading) return;
@@ -60,7 +88,7 @@ export default function AIPage() {
     setMessages(updatedMessages);
     setInput("");
     setLoading(true);
-    setError(null);
+    setStatusNotice(null);
 
     const outgoingFiles = files.map((f) => ({
       name: f.name,
@@ -69,6 +97,40 @@ export default function AIPage() {
       data: f.data,
     }));
 
+    // If device is offline OR user turned on Force Offline mode:
+    if (!isOnline || offlineOnly) {
+      // Simulate slight realistic processing for UX
+      setTimeout(() => {
+        try {
+          const offlineReply = generateOfflineTutorReply(
+            userMessage.content,
+            outgoingFiles,
+            updatedMessages
+          );
+          setMessages([
+            ...updatedMessages,
+            { role: "assistant", content: offlineReply, source: "offline" },
+          ]);
+          setFiles([]);
+          setStatusNotice("Synthesized locally via 100% Offline UNZA Knowledge Engine.");
+        } catch (err: any) {
+          console.error("Offline tutor error:", err);
+          setMessages([
+            ...updatedMessages,
+            {
+              role: "assistant",
+              content: "### 🎓 Academic Tutor (Offline Notice)\nI encountered an issue processing your query offline. Please try rephrasing or asking about a specific UNZA course topic.",
+              source: "offline",
+            },
+          ]);
+        } finally {
+          setLoading(false);
+        }
+      }, 400);
+      return;
+    }
+
+    // Attempt online API call with automatic offline fallback
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -80,19 +142,29 @@ export default function AIPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || `Server responded with status ${res.status}`);
+        throw new Error(`Server returned HTTP ${res.status}`);
       }
 
       const data = await res.json();
       setMessages([
         ...updatedMessages,
-        { role: "assistant", content: data.reply },
+        { role: "assistant", content: data.reply, source: "cloud" },
       ]);
-      setFiles([]); // Clear attached files upon success
+      setFiles([]);
     } catch (err: any) {
-      console.error("Chat error:", err);
-      setError(err?.message || "Failed to reach the AI tutor. Please verify GEMINI_API_KEY is configured.");
+      console.warn("Cloud AI unavailable, activating Offline Intelligence Engine:", err?.message || err);
+      // Fallback seamlessly to offline intelligence engine
+      const fallbackReply = generateOfflineTutorReply(
+        userMessage.content,
+        outgoingFiles,
+        updatedMessages
+      );
+      setMessages([
+        ...updatedMessages,
+        { role: "assistant", content: fallbackReply, source: "offline" },
+      ]);
+      setFiles([]);
+      setStatusNotice("Cloud service unreachable — answered automatically using the offline UNZA Knowledge Engine.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +186,7 @@ export default function AIPage() {
   const clearChat = () => {
     setMessages([]);
     setFiles([]);
-    setError(null);
+    setStatusNotice(null);
   };
 
   const handleCopy = (index: number, content: string) => {
@@ -122,6 +194,8 @@ export default function AIPage() {
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
+
+  const currentModeOffline = !isOnline || offlineOnly;
 
   return (
     <div className="flex flex-col h-[calc(100vh-130px)] max-w-4xl mx-auto pb-4">
@@ -137,39 +211,69 @@ export default function AIPage() {
               <span>Back to Courses</span>
             </Link>
             <span className="text-slate-600">·</span>
-            <span className="text-[11px] text-slate-400 font-mono">
-              Powered by Gemini 3.8 Flash · Vision & Live Diagrams
+            <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+              <Cpu className="w-3 h-3 text-purple-400" />
+              <span>100% Offline Capable · Visual Diagrams & Verified Solutions</span>
             </span>
           </div>
 
           <h1 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs">
+            <span className="w-6 h-6 rounded-lg bg-purple-600 flex items-center justify-center text-white text-xs">
               🤖
             </span>
             <span>UNZA AI Study Assistant & Diagram Tutor</span>
           </h1>
 
           <p className="text-xs text-slate-400">
-            Ask any question · Attach past paper PDFs & screenshots · Get live Mermaid diagrams
+            Ask any question · Attach past paper PDFs, images & notes · Live Mermaid diagrams · Works without internet
           </p>
         </div>
 
-        {messages.length > 0 && (
+        <div className="flex items-center gap-2">
+          {/* Offline Toggle Button */}
           <button
-            onClick={clearChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-rose-400 border border-slate-800 rounded-lg text-xs transition-colors"
+            onClick={toggleOfflineMode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              currentModeOffline
+                ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm"
+                : "bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300"
+            }`}
+            title={
+              currentModeOffline
+                ? "100% Offline Mode Active (Zero internet data used)"
+                : "Hybrid Mode: Cloud Gemini with automatic offline fallback"
+            }
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear Chat</span>
+            {currentModeOffline ? (
+              <>
+                <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+                <span>Offline Engine: Active</span>
+              </>
+            ) : (
+              <>
+                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Hybrid: Online</span>
+              </>
+            )}
           </button>
-        )}
+
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-rose-400 border border-slate-800 rounded-lg text-xs transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Clear Chat</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto rounded-xl bg-slate-900/60 border border-slate-800 p-4 sm:p-6 space-y-6">
         {messages.length === 0 && (
           <div className="text-center py-8 sm:py-12 max-w-xl mx-auto space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
+            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
               🎓
             </div>
             <div className="space-y-1">
@@ -177,8 +281,21 @@ export default function AIPage() {
                 What would you like to revise today?
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Upload a past paper PDF or screenshot, and I will analyze each question, explain calculations, and draw architecture diagrams.
+                Upload a past paper PDF or screenshot, and I will analyze each question, explain calculations, and draw architecture diagrams — online or 100% offline.
               </p>
+            </div>
+
+            {/* Offline Readiness Callout */}
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-left text-xs text-slate-300 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] leading-tight space-y-0.5">
+                <span className="font-bold text-white block">Offline Tutor Engine Ready</span>
+                <span className="text-slate-400">
+                  Full UNZA past paper solutions, formulas, defect models, and live Mermaid drawings are cached and fully functional without an internet connection.
+                </span>
+              </div>
             </div>
 
             {/* Suggestions */}
@@ -191,9 +308,9 @@ export default function AIPage() {
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
-                    className="p-3 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-blue-500/40 rounded-lg text-xs text-left text-slate-300 hover:text-white transition-all shadow-sm group"
+                    className="p-3 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-purple-500/40 rounded-lg text-xs text-left text-slate-300 hover:text-white transition-all shadow-sm group"
                   >
-                    <span className="text-blue-400 font-bold mr-1.5 group-hover:translate-x-0.5 inline-block transition-transform">
+                    <span className="text-purple-400 font-bold mr-1.5 group-hover:translate-x-0.5 inline-block transition-transform">
                       →
                     </span>
                     {s}
@@ -219,6 +336,8 @@ export default function AIPage() {
                 className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${
                   isUser
                     ? "bg-blue-600 text-white"
+                    : msg.source === "offline"
+                    ? "bg-amber-600/20 border border-amber-500/30 text-amber-300"
                     : "bg-purple-600/20 border border-purple-500/30 text-purple-400"
                 }`}
               >
@@ -235,7 +354,19 @@ export default function AIPage() {
                 {!isUser ? (
                   <>
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2 text-[10px] text-slate-400 font-mono">
-                      <span>UNZA Academic Tutor</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-300">UNZA Academic Tutor</span>
+                        {msg.source === "offline" ? (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px]">
+                            ⚡ Local Offline Engine
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px]">
+                            ☁️ Gemini 3.8 Flash
+                          </span>
+                        )}
+                      </div>
+
                       <button
                         onClick={() => handleCopy(i, msg.content)}
                         className="hover:text-white flex items-center gap-1 transition-colors"
@@ -315,21 +446,24 @@ export default function AIPage() {
             </div>
             <div className="bg-slate-950 border border-slate-800 rounded-xl rounded-tl-none p-4 text-xs text-slate-400 flex items-center gap-2 shadow-md">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]" />
-                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" />
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.3s]" />
               </div>
-              <span className="text-[11px] font-mono">Analyzing question & synthesizing solution with diagrams...</span>
+              <span className="text-[11px] font-mono">
+                {currentModeOffline
+                  ? "Analyzing query & synthesizing solution with local Mermaid diagrams..."
+                  : "Analyzing question & synthesizing solution with diagrams..."}
+              </span>
             </div>
           </div>
         )}
 
-        {error && (
-          <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 text-xs flex items-center gap-2 max-w-2xl mx-auto shadow-sm">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+        {statusNotice && (
+          <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 text-xs flex items-center gap-2 max-w-2xl mx-auto shadow-sm">
+            <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
             <div className="flex-1">
-              <span className="font-semibold block">Tutor connection note:</span>
-              <span className="text-[11px] text-rose-200">{error}</span>
+              <span className="text-[11px] text-slate-300">{statusNotice}</span>
             </div>
           </div>
         )}
@@ -348,15 +482,17 @@ export default function AIPage() {
             placeholder={
               files.length > 0
                 ? "Describe what you would like answered from your attachments (or send directly)..."
+                : currentModeOffline
+                ? "Ask anything offline, request a diagram, or attach a past paper..."
                 : "Ask anything, request a diagram, or attach a past paper..."
             }
             disabled={loading}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={loading || (!input.trim() && files.length === 0)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"
+            className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm active:scale-95"
           >
             <span>Ask Tutor</span>
             <Send className="w-3.5 h-3.5" />

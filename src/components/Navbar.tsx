@@ -6,11 +6,15 @@ import {
   Calculator, 
   Settings, 
   GraduationCap,
-  Bot
+  Bot,
+  WifiOff
 } from "lucide-react";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
+  const isOnline = useOnlineStatus();
 
   const isActive = (path: string) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -19,21 +23,31 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between gap-2">
       {/* Brand */}
-      <Link to="/" className="flex items-center gap-2.5 text-white hover:opacity-90 transition-opacity">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
-          <GraduationCap className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight">
-            UNZA Study-Guider
+      <div className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-2.5 text-white hover:opacity-90 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
+            <GraduationCap className="w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight">
+              UNZA Study-Guider
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+              Multi-Course Revision & Solution Portal
+            </span>
+          </div>
+        </Link>
+
+        {/* Offline Badge */}
+        {!isOnline && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono">
+            <WifiOff className="w-3 h-3" />
+            <span>Offline Ready</span>
           </span>
-          <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-            Multi-Course Revision & Solution Portal
-          </span>
-        </div>
-      </Link>
+        )}
+      </div>
 
       {/* Nav items */}
       <nav className="flex items-center gap-1 text-xs font-medium">
@@ -94,8 +108,12 @@ export const Navbar: React.FC = () => {
           }`}
         >
           <Settings className="w-3.5 h-3.5" />
-          <span>Admin</span>
+          <span className="hidden md:inline">Admin</span>
         </Link>
+
+        <div className="ml-1 pl-1 border-l border-slate-800">
+          <PWAInstallButton />
+        </div>
       </nav>
     </header>
   );
