@@ -1,0 +1,6 @@
+{
+  "name": "UNZA 2024 CSC 4642 Exam Solutions & Interactive Revision Portal",
+  "description": "Comprehensive, verified solutions and interactive visual diagrams for the University of Zambia (UNZA) 2024 CSC 4642 Software Quality Assurance final examination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
