@@ -1,4 +1,4 @@
-````markdown
+```markdown
 # Study-Guider
 
 <div align="center">
@@ -381,9 +381,9 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 
 <div align="center">
 
-**Built by BORNFACE KANGOMBE for UNZA Computer Science students**
+**Built for UNZA Computer Science students**
 
 ⭐ Star this repo if you find it useful!
 
 </div>
-````
+```
