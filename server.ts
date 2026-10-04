@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 dotenv.config();
 
@@ -14,46 +15,25 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Serve static assets from public folder (including pdf.worker.min.mjs)
+app.use(express.static(path.resolve(import.meta.dirname, "public")));
+
 const MODEL = "gemini-3.8-flash";
 
-const SYSTEM_PROMPT = `You are a helpful academic tutor for University of Zambia (UNZA) students.
-You answer questions across all UNZA courses — Computer Science, Software Engineering, SQA,
-Mathematics, Engineering, Natural Sciences, Business, Education, and Humanities.
+const SYSTEM_PROMPT = `
+You are the UNZA Study-Guider AI Tutor. Ground every answer in the user's attachment.
 
-Course Knowledge:
-- CSC 4642: Software Quality Assurance (McCall factor model, Evans & Marciniak, Deutsch & Willis, error/fault/failure taxonomy, SQA components & objectives, contract review, formal design reviews vs peer reviews/inspections/walkthroughs, defect removal model with 100 defects calculations, cyclomatic complexity V(G) = E - N + 2 = P + 1, equivalence partitioning, boundary value analysis, top-down vs bottom-up testing).
-- CSC 4630: Advanced Software Engineering (Goal-Oriented Requirements Engineering / KAOS, GRASP principles, GoF design patterns, microservices architecture, circuit breakers, formal verification).
-- CSC 3600: Software Engineering (Fundamentals Ch 1–7, software processes, waterfall 5 phases & limits, incremental development advantages & problems, agile manifesto values, requirements engineering process: elicitation, specification, validation, verification vs validation V&V, safety-critical systems like Insulin Pump control, psychiatric healthcare management like Mentcare system, UML modeling for Smart Campus Healthcare System SCHS including context models, use case diagrams, and activity workflow).
-
-You can read uploaded PDFs and images (past papers, screenshots, handwritten notes).
-
-Guidelines:
-- Give clear, well-structured answers suitable for exam revision.
-- Use markdown formatting (headings, bullet points, tables, code blocks).
-- Show step-by-step calculations when relevant.
-- If the student uploads a past paper, identify each question and answer it in order.
-- Cite the topic area (e.g., "This is from SQA Topic 7 — Defect Removal Model").
-- If unsure, say so honestly. Never invent facts.
-
-DRAWING — VERY IMPORTANT:
-When a diagram would help (flowcharts, UML class diagrams, sequence diagrams,
-state machines, ER diagrams, architecture diagrams, mind maps, Gantt charts),
-emit a Mermaid code block. The client renders it live.
-
-Supported types: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2,
-erDiagram, gantt, pie, mindmap, journey, gitGraph.
-
-Example — a flowchart:
-\`\`\`mermaid
-flowchart TD
-  A[Start] --> B{Decision?}
-  B -->|Yes| C[Do thing]
-  B -->|No| D[Skip]
-\`\`\`
-
-Only use Mermaid when a diagram genuinely aids understanding.
-For anything Mermaid cannot express (e.g., fine-grained circuit layouts), fall
-back to a well-formatted ASCII sketch inside a \`\`\`text block.`;
+ABSOLUTE RULES:
+1. If an attachment is present, answer ONLY from its content. Cite (Attached: <filename>, p. N).
+2. Never display raw PDF object headers (PDF-1.4, MediaBox, Kids, Parent, /Type).
+   If extraction looks broken, say: "The PDF text layer could not be read. Please confirm the file is not a scanned image, or re-upload."
+3. When the user says "solve the attached paper" or "solve in order", solve EVERY question you find, in numeric order.
+   Use headings: "QUESTION ONE", "QUESTION TWO", … Preserve mark allocations: "[15 marks]".
+4. When the user asks a specific question, answer ONLY that question.
+5. If a question is genuinely absent, say: "Question X is not in the attachment. Present: <list>." Never fabricate.
+6. Format: British English. No LaTeX. Use → ≤ ≥ × ÷ ⇒. Mermaid inside \`\`\`mermaid fences only.
+7. Never reply "no questions detected" if any real English text exists in the attachment.
+`.trim();
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 5;
@@ -61,6 +41,7 @@ const ALLOWED_MIMES = new Set([
   "application/pdf",
   "image/png",
   "image/jpeg",
+  "image/jpg",
   "image/webp",
   "image/heic",
   "image/heif",
@@ -71,8 +52,101 @@ const ALLOWED_MIMES = new Set([
 interface UploadedFile {
   name: string;
   mimeType: string;
-  data: string; // base64 (no data: prefix)
+  data: string; // base64 (with or without data: prefix)
   size: number;
+}
+
+function cleanBase64(data: string): string {
+  return data.includes(",") ? data.split(",")[1] : data;
+}
+
+function normaliseText(t: string): string {
+  if (!t) return "";
+  return t
+    .replace(/\u0000/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function isRealText(text: string): boolean {
+  if (!text || text.length < 40) return false;
+  if (/^%PDF-|^PDF-\d/.test(text)) return false;
+  const pdfKeywordCount = (text.match(/\/Type|\/MediaBox|\/Kids|\/Parent|\/Contents/g) || []).length;
+  if (pdfKeywordCount > 5) return false;
+  const words = text.match(/\b[A-Za-z]{3,}\b/g) || [];
+  return words.length >= 15;
+}
+
+async function extractPdfPagesServer(
+  buffer: Buffer,
+  filename: string
+): Promise<{
+  pages: { page: number; text: string }[];
+  hasRealText: boolean;
+}> {
+  try {
+    const uint8 = new Uint8Array(buffer);
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8,
+      useSystemFonts: true,
+      useWorkerFetch: false,
+    });
+
+    const pdf = await loadingTask.promise;
+    const pages: { page: number; text: string }[] = [];
+    let validPageCount = 0;
+
+    console.log(`[PDF-SERVER] file=${filename} pages=${pdf.numPages}`);
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const rawText = content.items
+        .map((it: any) => it.str || "")
+        .join(" ");
+
+      const cleaned = normaliseText(rawText);
+      const isReal = isRealText(cleaned);
+
+      if (isReal) {
+        validPageCount++;
+      }
+
+      console.log(`[PDF-SERVER] page ${i}: ${cleaned.length} chars (real=${isReal})`);
+      pages.push({ page: i, text: cleaned });
+    }
+
+    return {
+      pages,
+      hasRealText: validPageCount > 0,
+    };
+  } catch (err: any) {
+    console.error(`[PDF-SERVER] Error processing ${filename}:`, err?.message || err);
+    return { pages: [], hasRealText: false };
+  }
+}
+
+function cleanLatex(input: string): string {
+  return input
+    .replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\mathrm\{([^}]*)\}/g, "$1")
+    .replace(/\\mathbf\{([^}]*)\}/g, "$1")
+    .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "($1 / $2)")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\le(q)?\b/g, "≤")
+    .replace(/\\ge(q)?\b/g, "≥")
+    .replace(/\\neq/g, "≠")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\rightarrow/g, "→")
+    .replace(/\\leftarrow/g, "←")
+    .replace(/\\implies/g, "⇒")
+    .replace(/\$\$/g, "")
+    .replace(/\$/g, "");
 }
 
 // /api/chat endpoint
@@ -91,7 +165,6 @@ app.post("/api/chat", async (req, res) => {
     return res.status(400).json({ error: "Missing messages array" });
   }
 
-  // Validate uploads
   const safeFiles: UploadedFile[] = [];
   if (Array.isArray(files)) {
     if (files.length > MAX_FILES) {
@@ -121,24 +194,83 @@ app.post("/api/chat", async (req, res) => {
       },
     });
 
-    const contents = messages.map((m, idx) => {
-      const isLastUser = idx === messages.length - 1 && m.role === "user";
-      const textContent = m.content?.trim() || (isLastUser && safeFiles.length > 0 ? "Please analyze the attached materials and answer all questions in detail." : "Hello");
-      const parts: any[] = [{ text: textContent }];
+    const attachmentBlocks: string[] = [];
+    const inlineVisionParts: any[] = [];
 
-      if (isLastUser && safeFiles.length > 0) {
-        for (const f of safeFiles) {
-          parts.push({
+    for (let i = 0; i < safeFiles.length; i++) {
+      const file = safeFiles[i];
+      const attachmentNum = i + 1;
+      const cleanData = cleanBase64(file.data);
+
+      if (file.mimeType === "application/pdf" || file.name.endsWith(".pdf")) {
+        const buffer = Buffer.from(cleanData, "base64");
+        const { pages, hasRealText } = await extractPdfPagesServer(buffer, file.name);
+
+        if (hasRealText && pages.length > 0) {
+          const validPages = pages.filter((p) => isRealText(p.text));
+          let pageStrings = "";
+          validPages.forEach((p) => {
+            pageStrings += `--- Page ${p.page} ---\n${p.text}\n`;
+          });
+
+          attachmentBlocks.push(
+            `[ATTACHMENT ${attachmentNum}: ${file.name}]\n${pageStrings}[END ATTACHMENT ${attachmentNum}]`
+          );
+        } else {
+          // Scanned PDF fallback
+          inlineVisionParts.push({
             inlineData: {
-              mimeType: f.mimeType,
-              data: f.data,
+              mimeType: "application/pdf",
+              data: cleanData,
             },
           });
+          attachmentBlocks.push(
+            `[ATTACHMENT ${attachmentNum}: ${file.name} (Visual PDF document)]`
+          );
+        }
+      } else if (file.mimeType.startsWith("image/")) {
+        inlineVisionParts.push({
+          inlineData: {
+            mimeType: file.mimeType,
+            data: cleanData,
+          },
+        });
+        attachmentBlocks.push(`[ATTACHMENT ${attachmentNum}: ${file.name} (Image Attachment)]`);
+      } else {
+        // Plain text
+        try {
+          const raw = normaliseText(Buffer.from(cleanData, "base64").toString("utf-8"));
+          attachmentBlocks.push(
+            `[ATTACHMENT ${attachmentNum}: ${file.name}]\n--- Page 1 ---\n${raw}\n[END ATTACHMENT ${attachmentNum}]`
+          );
+        } catch {
+          attachmentBlocks.push(`[ATTACHMENT ${attachmentNum}: ${file.name}]`);
         }
       }
+    }
+
+    const contents = messages.map((m, idx) => {
+      const isLastUser = idx === messages.length - 1 && m.role === "user";
+      if (!isLastUser) {
+        return {
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        };
+      }
+
+      let finalUserPrompt = "";
+
+      if (attachmentBlocks.length > 0) {
+        finalUserPrompt += attachmentBlocks.join("\n\n") + "\n\n";
+        finalUserPrompt += `[USER QUESTION]\n${m.content || "Solve the questions in the attached paper in order."}`;
+      } else {
+        finalUserPrompt = m.content || "Hello";
+      }
+
+      const parts: any[] = [{ text: finalUserPrompt }, ...inlineVisionParts];
 
       return {
-        role: m.role === "assistant" ? "model" : "user",
+        role: "user",
         parts,
       };
     });
@@ -148,71 +280,17 @@ app.post("/api/chat", async (req, res) => {
       contents,
       config: {
         systemInstruction: SYSTEM_PROMPT,
-        temperature: 0.7,
+        temperature: 0.2,
         maxOutputTokens: 8192,
       },
     });
 
-    const reply = response.text || "No response generated.";
-    return res.json({ reply });
+    const rawReply = response.text || "No response generated.";
+    const cleanReply = cleanLatex(rawReply);
+
+    return res.json({ reply: cleanReply });
   } catch (error: any) {
-    console.error("Gemini SDK notice:", error?.message || error);
-
-    // Robust fallback: direct REST endpoint to generativelanguage API
-    try {
-      const restContents = messages.map((m, idx) => {
-        const isLastUser = idx === messages.length - 1 && m.role === "user";
-        const textContent = m.content?.trim() || (isLastUser && safeFiles.length > 0 ? "Please analyze the attached materials and answer all questions in detail." : "Hello");
-        const parts: any[] = [{ text: textContent }];
-
-        if (isLastUser && safeFiles.length > 0) {
-          for (const f of safeFiles) {
-            parts.push({
-              inline_data: {
-                mime_type: f.mimeType,
-                data: f.data,
-              },
-            });
-          }
-        }
-
-        return {
-          role: m.role === "assistant" ? "model" : "user",
-          parts,
-        };
-      });
-
-      const restResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: SYSTEM_PROMPT }],
-            },
-            contents: restContents,
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 8192,
-            },
-          }),
-        }
-      );
-
-      if (restResponse.ok) {
-        const data = await restResponse.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response generated.";
-        return res.json({ reply: text });
-      } else {
-        const errJson = await restResponse.json().catch(() => null);
-        const errMsg = errJson?.error?.message || `HTTP ${restResponse.status}`;
-        console.error("Gemini REST service notice:", errMsg);
-      }
-    } catch (fallbackError: any) {
-      console.error("Gemini fallback notice:", fallbackError?.message || fallbackError);
-    }
-
+    console.error("Gemini API error:", error?.message || error);
     return res.status(500).json({ error: error?.message || "AI tutor service error" });
   }
 });
