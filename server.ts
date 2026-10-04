@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -225,9 +226,24 @@ async function startServer() {
   } else {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
     app.use(vite.middlewares);
+
+    app.use("*", async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        let template = fs.readFileSync(
+          path.resolve(import.meta.dirname, "index.html"),
+          "utf-8"
+        );
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {

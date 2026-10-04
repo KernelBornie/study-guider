@@ -8,7 +8,7 @@ export const csc3600: Course = {
   code: "CSC 3600",
   title: "Software Engineering",
   description:
-    "Complete UNZA CSC 3600 solutions — software processes, agile methods, requirements engineering, verification vs validation, safety-critical systems (Insulin Pump), psychiatric healthcare management (Mentcare), and UML modeling for Smart Campus Healthcare System (SCHS).",
+    "Complete UNZA CSC 3600 solutions — software processes, agile methods, requirements engineering, verification vs validation, safety-critical systems (Insulin Pump), psychiatric healthcare management (Mentcare), and UML modelling for Smart Campus Healthcare System (SCHS).",
   color: "amber",
   papers: [
     csc3600_Test1,

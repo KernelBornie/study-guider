@@ -2,19 +2,38 @@ import { useState, useEffect } from "react";
 import { Course, Paper, Question, Section } from "@/types";
 import { courses as staticCourses } from "@/data/courses";
 
-const STORAGE_KEY = "study-guider-courses-v3";
+const STORAGE_KEY = "study-guider-courses-v6";
 
 export function useLocalData() {
   const [courses, setCourses] = useState<Course[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("study-guider-courses-v2");
+      const saved =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem("study-guider-courses-v5") ||
+        localStorage.getItem("study-guider-courses-v4") ||
+        localStorage.getItem("study-guider-courses-v3") ||
+        localStorage.getItem("study-guider-courses-v2");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Preserve user changes while ensuring new official courses like CSC 3600 are present
-          const existingSlugs = new Set(parsed.map((c: any) => c.slug));
-          const missingCourses = staticCourses.filter((c) => !existingSlugs.has(c.slug));
-          return [...parsed, ...missingCourses];
+          // Merge official static courses with latest verified content and preserve user papers
+          const updatedCourses = staticCourses.map((staticC) => {
+            const userCourse = parsed.find((p: any) => p.slug === staticC.slug);
+            if (!userCourse) return staticC;
+            const staticPaperSlugs = new Set(staticC.papers.map((p) => p.slug));
+            const customUserPapers = (userCourse.papers || []).filter(
+              (p: any) => !staticPaperSlugs.has(p.slug)
+            );
+            return {
+              ...userCourse,
+              papers: [...staticC.papers, ...customUserPapers],
+            };
+          });
+
+          // Also include any user-created custom courses
+          const staticSlugs = new Set(staticCourses.map((c) => c.slug));
+          const customUserCourses = parsed.filter((c: any) => !staticSlugs.has(c.slug));
+          return [...updatedCourses, ...customUserCourses];
         }
       }
     } catch (e) {

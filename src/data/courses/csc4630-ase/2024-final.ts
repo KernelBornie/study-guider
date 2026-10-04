@@ -26,7 +26,7 @@ export const csc4630_2024Final: Paper = {
               label: "1a",
               marks: 10,
               question: "Explain Goal-Oriented Requirements Engineering (GORE) and discuss how it fundamentally differs from traditional requirements engineering approaches.",
-              answer: "**Goal-Oriented Requirements Engineering (GORE)** is an elicitation and modeling framework that treats stakeholder objectives ('goals') as first-class citizens rather than immediately focusing on functional specifications and features.\n\n### Fundamental Differences:\n- **Why vs. What:** Traditional RE begins by asking *'What should the system do?'* (features), often producing premature solutions. GORE begins by inquiring *'Why is this system needed?'* (underlying stakeholder intentions).\n- **AND/OR Goal Refinement:** Higher-level strategic objectives are systematically decomposed into sub-goals using AND-refinements (all sub-goals required) and OR-refinements (representing design alternatives).\n- **Conflict & Obstacle Resolution:** GORE explicitly detects conflicting stakeholder goals and models anti-goals (threats, obstacles) to derive robust defensive requirements.\n- **Traceability & Completeness:** Provides bidirectional traceability from enterprise-level business goals directly down to operational software requirements assigned to software agents."
+              answer: "**Goal-Oriented Requirements Engineering (GORE)** is an elicitation and modelling framework that treats stakeholder objectives ('goals') as first-class citizens rather than immediately focusing on functional specifications and features.\n\n### Fundamental Differences:\n- **Why vs. What:** Traditional RE begins by asking *'What should the system do?'* (features), often producing premature solutions. GORE begins by inquiring *'Why is this system needed?'* (underlying stakeholder intentions).\n- **AND/OR Goal Refinement:** Higher-level strategic objectives are systematically decomposed into sub-goals using AND-refinements (all sub-goals required) and OR-refinements (representing design alternatives).\n- **Conflict & Obstacle Resolution:** GORE explicitly detects conflicting stakeholder goals and models anti-goals (threats, obstacles) to derive robust defensive requirements.\n- **Traceability & Completeness:** Provides bidirectional traceability from enterprise-level business goals directly down to operational software requirements assigned to software agents."
             },
             {
               id: "ase-q1-2",
@@ -70,7 +70,7 @@ export const csc4630_2024Final: Paper = {
         {
           id: "ase-q3",
           number: "Question 3",
-          title: "GoF Design Patterns: Creational, Structural & Behavioral",
+          title: "GoF Design Patterns: Creational, Structural & Behavioural",
           marks: 25,
           subQuestions: [
             {
@@ -84,8 +84,8 @@ export const csc4630_2024Final: Paper = {
               id: "ase-q3-2",
               label: "3b",
               marks: 13,
-              question: "Explain the Strategy Pattern vs State Pattern. Both share similar class diagrams; what distinguishes their runtime behavior and intent?",
-              answer: "- **Intent:**\n  - *Strategy:* Configures a client object with an interchangeable algorithm or business rule chosen externally by the client (e.g., payment method: Card vs. Mobile Money).\n  - *State:* Allows an object to alter its behavior when its internal state changes; from the client's perspective, the object appears to change its class (e.g., Document: Draft → UnderReview → Published).\n- **Runtime Transitions:**\n  - In Strategy, the strategy is typically injected once and rarely switches on its own during execution.\n  - In State, state objects frequently trigger transitions to other concrete state objects based on contextual events."
+              question: "Explain the Strategy Pattern vs State Pattern. Both share similar class diagrams; what distinguishes their runtime behaviour and intent?",
+              answer: "- **Intent:**\n  - *Strategy:* Configures a client object with an interchangeable algorithm or business rule chosen externally by the client (e.g., payment method: Card vs. Mobile Money).\n  - *State:* Allows an object to alter its behaviour when its internal state changes; from the client's perspective, the object appears to change its class (e.g., Document: Draft → UnderReview → Published).\n- **Runtime Transitions:**\n  - In Strategy, the strategy is typically injected once and rarely switches on its own during execution.\n  - In State, state objects frequently trigger transitions to other concrete state objects based on contextual events."
             }
           ]
         },

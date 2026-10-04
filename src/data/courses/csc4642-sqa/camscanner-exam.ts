@@ -33,7 +33,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "I",
               marks: 5,
               question: "Develop the Flow Chart for the program. [5 marks]",
-              answer: "```text\n             [Start: Node 1]\n                    |\n                    v\n             < A = 10? > (Node 2)\n             /         \\\n       [YES]           [NO]\n         /               \\\n        v                 |\n   < B > C? > (Node 3)    |\n     /     \\              |\n  [YES]   [NO]            |\n   /         \\            |\n  v           v           |\n[A = B]    [A = C]        |\n(Node 4)   (Node 5)       |\n   \\         /            |\n    \\       /             |\n     v     v              |\n    [Print A, B, C] <-----+ (Node 6)\n          |\n          v\n       [End] (Node 7)\n```"
+              answer: "```mermaid\nflowchart TD\n  N1[\"1. Start: Node 1\"] --> N2{\"2. A = 10?\"}\n  N2 -->|Yes| N3{\"3. B > C?\"}\n  N2 -->|No| N6[\"6. Print A, B, C\"]\n  N3 -->|Yes| N4[\"4. A = B\"]\n  N3 -->|No| N5[\"5. A = C\"]\n  N4 --> N6\n  N5 --> N6\n  N6 --> N7[\"7. End\"]\n```\n\n```text\n             [Start: Node 1]\n                    |\n                    v\n             < A = 10? > (Node 2)\n             /         \\\n       [YES]           [NO]\n         /               \\\n        v                 |\n   < B > C? > (Node 3)    |\n     /     \\              |\n  [YES]   [NO]            |\n   /         \\            |\n  v           v           |\n[A = B]    [A = C]        |\n(Node 4)   (Node 5)       |\n   \\         /            |\n    \\       /             |\n     v     v              |\n    [Print A, B, C] <-----+ (Node 6)\n          |\n          v\n       [End] (Node 7)\n```"
             },
             {
               id: "cs-q1-2",
@@ -47,7 +47,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "III",
               marks: 2,
               question: "Compute the Cyclomatic Complexity of the program. [2 marks]",
-              answer: "### Method 1: Edge-Node Formula\n$$V(G) = E - N + 2$$\n$$V(G) = 8 - 7 + 2 = \\mathbf{3}$$\n\n### Method 2: Predicate Node Formula\n$$V(G) = P + 1$$\nWhere predicate nodes with binary branches are Node 2 (`A = 10`) and Node 3 (`B > C`), so $P = 2$:\n$$V(G) = 2 + 1 = \\mathbf{3}$$\n\n### Method 3: Enclosed Regions\nTwo enclosed regions + one unbounded outer region = **3**."
+              answer: "### Method 1: Edge-Node Formula\nV(G) = E - N + 2\nV(G) = 8 - 7 + 2 = 3\n\n### Method 2: Predicate Node Formula\nV(G) = P + 1\nWhere predicate nodes with binary branches are Node 2 (`A = 10`) and Node 3 (`B > C`), so P = 2:\nV(G) = 2 + 1 = 3\n\n### Method 3: Enclosed Regions\nTwo enclosed regions + one unbounded outer region = 3."
             },
             {
               id: "cs-q1-4",
@@ -61,7 +61,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "V",
               marks: 3,
               question: "Comment on the overall complexity of the program based on the Cyclomatic Complexity you computed. [3 marks]",
-              answer: "A Cyclomatic Complexity of **3** indicates a **simple, low-risk, and highly maintainable program**. According to McCabe's complexity scale ($V(G) \\le 10$), the program has low cognitive load, is easy to understand, and requires only 3 test cases to achieve 100% basis path coverage."
+              answer: "A Cyclomatic Complexity of **3** indicates a **simple, low-risk, and highly maintainable program**. According to McCabe's complexity scale (V(G) ≤ 10), the program has low cognitive load, is easy to understand, and requires only 3 test cases to achieve 100% basis path coverage."
             }
           ]
         },
@@ -113,7 +113,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "I",
               marks: 3,
               question: "Distinguish among software error, software fault and software failure. [3 marks]",
-              answer: "- **Software Error:** A human mistake made during analysis, design, or coding.\n- **Software Fault:** An incorrect internal state or bug residing in a code or document artifact resulting from the error.\n- **Software Failure:** A runtime deviation from expected behavior that disrupts user operations when the fault is executed.",
+              answer: "- **Software Error:** A human mistake made during analysis, design, or coding.\n- **Software Fault:** An incorrect internal state or bug residing in a code or document artifact resulting from the error.\n- **Software Failure:** A runtime deviation from expected behaviour that disrupts user operations when the fault is executed.",
               diagramType: "error-chain"
             },
             {
@@ -157,7 +157,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "II",
               marks: 4,
               question: "List the valid equivalence classes for the module. [4 marks]",
-              answer: "- **Day of Week:** EC1: Weekday (Monday–Friday), EC2: Weekend (Saturday–Sunday)\n- **Payment Mode:** EC3: Cash, EC4: Card\n- **Time of Travel:** EC5: Peak (05:00–09:00), EC6: Off-Peak (09:01–23:45)\n- **Passenger Age:** EC7: Child ($0 \\le \\text{age} \\le 13$), EC8: Adult ($13 < \\text{age} \\le 60$), EC9: Senior ($60 < \\text{age} \\le 120$), EC10: Special Needs Category"
+              answer: "- **Day of Week:** EC1: Weekday (Monday–Friday), EC2: Weekend (Saturday–Sunday)\n- **Payment Mode:** EC3: Cash, EC4: Card\n- **Time of Travel:** EC5: Peak (05:00–09:00), EC6: Off-Peak (09:01–23:45)\n- **Passenger Age:** EC7: Child (0 ≤ age ≤ 13), EC8: Adult (13 < age ≤ 60), EC9: Senior (60 < age ≤ 120), EC10: Special Needs Category"
             },
             {
               id: "cs-q4-3",
@@ -214,7 +214,7 @@ export const csc4642_CamScannerExam: Paper = {
               label: "III.a",
               marks: 8,
               question: "Consider the following system: Module M12 is integrated with five lower-level Modules and only one upper-level Module. Illustrate and describe both top-down and bottom-up testing of the system. [8 marks]",
-              answer: "### Architecture Hierarchy:\n```text\n       [Upper-Level M0]\n              |\n            [M12]\n    /    /    |    \\    \\\n  [L1] [L2] [L3]  [L4]  [L5]\n```\n\n### Top-Down Testing Strategy:\n- Testing begins at the top with Module M0, then incorporates M12.\n- Lower-level modules L1–L5 are replaced by **stubs** (dummy simulator routines).\n- Stubs are progressively substituted with real modules as testing proceeds downwards.\n\n### Bottom-Up Testing Strategy:\n- Testing begins at the terminal leaf level by testing modules L1, L2, L3, L4, and L5 individually.\n- Because the calling module (M12) is not yet integrated, a **driver** (test harness) is developed to simulate M12, feed inputs, and collect outputs from L1–L5.\n- Once verified, M12 is tested, and finally a driver simulates M0."
+              answer: "### Architecture Hierarchy:\n```mermaid\nflowchart TD\n  M0[\"Upper-Level M0\"] --> M12[\"Module M12\"]\n  M12 --> L1[\"Lower Module L1\"]\n  M12 --> L2[\"Lower Module L2\"]\n  M12 --> L3[\"Lower Module L3\"]\n  M12 --> L4[\"Lower Module L4\"]\n  M12 --> L5[\"Lower Module L5\"]\n```\n\n```text\n       [Upper-Level M0]\n              |\n            [M12]\n    /    /    |    \\    \\\n  [L1] [L2] [L3]  [L4]  [L5]\n```\n\n### Top-Down Testing Strategy:\n- Testing begins at the top with Module M0, then incorporates M12.\n- Lower-level modules L1–L5 are replaced by **stubs** (dummy simulator routines).\n- Stubs are progressively substituted with real modules as testing proceeds downwards.\n\n### Bottom-Up Testing Strategy:\n- Testing begins at the terminal leaf level by testing modules L1, L2, L3, L4, and L5 individually.\n- Because the calling module (M12) is not yet integrated, a **driver** (test harness) is developed to simulate M12, feed inputs, and collect outputs from L1–L5.\n- Once verified, M12 is tested, and finally a driver simulates M0."
             },
             {
               id: "cs-q5-3b",

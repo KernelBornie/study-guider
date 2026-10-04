@@ -250,6 +250,107 @@ stateDiagram-v2
 \`\`\``;
   }
 
+  if (t.includes("its") || t.includes("taximeter") || t.includes("taxi")) {
+    return `\`\`\`mermaid
+flowchart TD
+  N1["1. Base Fare"] --> N2{"2. Distance D > 1000?"}
+  N2 -->|Yes| N3["3. Add 25c / 250 yds"]
+  N2 -->|No| N4["4. No Extra Charge"]
+  N3 --> N5{"5. Waiting Time WT > 3?"}
+  N4 --> N5
+  N5 -->|Yes| N6["6. Add 20c / 2 mins"]
+  N5 -->|No| N7["7. No Extra Charge"]
+  N6 --> N8{"8. Suitcases S > 1?"}
+  N7 --> N8
+  N8 -->|Yes| N9["9. Add $1 / Suitcase"]
+  N8 -->|No| N10["10. No Extra Charge"]
+  N9 --> N11{"11. Regular Client?"}
+  N10 --> N11
+  N11 -->|Yes| N12["12. 10% Discount"]
+  N11 -->|No| N13["13. No Discount"]
+  N12 --> N14{"14. Night Journey?"}
+  N13 --> N14
+  N14 -->|Yes| N15["15. Add 25% Supplement"]
+  N14 -->|No| N16["16. No Supplement"]
+  N15 --> N17["17. Print Receipt"]
+  N16 --> N17
+
+  classDef decision fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff;
+  class N2,N5,N8,N11,N14 decision;
+\`\`\``;
+  }
+
+  if (t.includes("ssd") || t.includes("pos") || (t.includes("sequence") && t.includes("sale"))) {
+    return `\`\`\`mermaid
+sequenceDiagram
+  autonumber
+  actor Cashier
+  participant POS as :POS System
+  participant Gateway as PaymentGateway
+
+  Cashier->>POS: makeNewSale()
+  loop [more items]
+    Cashier->>POS: enterItem(itemID, quantity)
+    POS-->>Cashier: displayLineItemTotal()
+  end
+  Cashier->>POS: endSale()
+  opt [customer requests gift receipt]
+    Cashier->>POS: printGiftReceipt()
+  end
+  Cashier->>POS: makePayment(amount)
+  POS->>Gateway: processPayment(amount)
+  alt [payment approved]
+    Gateway-->>POS: authCode
+    par [concurrent post-payment]
+      POS->>POS: printReceipt()
+    and
+      POS->>POS: updateInventory()
+    end
+    POS-->>Cashier: saleComplete
+  else [payment declined]
+    Gateway-->>POS: declineError
+    POS-->>Cashier: displayPaymentError
+  end
+\`\`\``;
+  }
+
+  if (t.includes("library") && (t.includes("use case") || t.includes("borrow") || t.includes("diagram"))) {
+    return `\`\`\`mermaid
+flowchart LR
+  subgraph ULMS["University Library Management System"]
+    UC1(["Search Catalogue"])
+    UC2(["Borrow Item"])
+    UC3(["Return Item"])
+    UC4(["Reserve Item"])
+    UC5(["Add Book to Collection"])
+    UC6(["Manage Fines"])
+  end
+
+  BORROWER["🧑‍🎓 Borrower"] --> UC1
+  BORROWER --> UC2
+  BORROWER --> UC3
+  BORROWER --> UC4
+
+  LIBRARIAN["📚 Librarian"] --> UC1
+  LIBRARIAN --> UC2
+  LIBRARIAN --> UC3
+  LIBRARIAN --> UC5
+  LIBRARIAN --> UC6
+\`\`\``;
+  }
+
+  if (t.includes("deadlock") || t.includes("livelock") || (t.includes("real-time") && t.includes("race"))) {
+    return `\`\`\`mermaid
+flowchart LR
+  subgraph DeadlockCondition["Deadlock: Circular Resource Wait"]
+    T1["Thread A<br/>(Holds Lock R1)"] -->|"Blocked Waiting For"| R2[("Resource R2")]
+    T2["Thread B<br/>(Holds Lock R2)"] -->|"Blocked Waiting For"| R1[("Resource R1")]
+    R1 -.->|"Currently Owned By"| T1
+    R2 -.->|"Currently Owned By"| T2
+  end
+\`\`\``;
+  }
+
   if (t.includes("cyclomatic") || t.includes("program graph") || t.includes("basis path")) {
     return `\`\`\`mermaid
 flowchart TD
@@ -336,33 +437,33 @@ function handleMathematicalCalculations(text: string): string | null {
     return `### 🧮 Step-by-Step Cyclomatic Complexity Calculation
 
 **Given Parameters:**
-- Number of Edges ($E$) = **${e}**
-- Number of Nodes / Vertices ($N$) = **${n}**
-- Predicate Nodes or Connected Components ($P$) = **${p}**
+- Number of Edges (E) = **${e}**
+- Number of Nodes / Vertices (N) = **${n}**
+- Predicate Nodes or Connected Components (P) = **${p}**
 
 ---
 
-#### 1. Standard McCabe Formula (Single Connected Graph, $P = 1$)
-$$V(G) = E - N + 2$$
-$$V(G) = ${e} - ${n} + 2 = ${vgFormula1}$$
+#### 1. Standard McCabe Formula (Single Connected Graph, P = 1)
+V(G) = E - N + 2
+V(G) = ${e} - ${n} + 2 = ${vgFormula1}
 
-#### 2. Formula for $P$ Predicate Nodes (Binary Decision Points)
-$$V(G) = P + 1$$
-$$V(G) = ${p} + 1 = ${vgPredicate}$$
+#### 2. Formula for P Predicate Nodes (Binary Decision Points)
+V(G) = P + 1
+V(G) = ${p} + 1 = ${vgPredicate}
 
-#### 3. General Formula for Multi-Component Graph ($p$ Connected Sub-graphs)
-$$V(G) = E - N + 2P$$
-$$V(G) = ${e} - ${n} + 2(${p}) = ${e} - ${n} + ${2 * p} = ${vgMultiComponent}$$
+#### 3. General Formula for Multi-Component Graph (p Connected Sub-graphs)
+V(G) = E - N + 2P
+V(G) = ${e} - ${n} + 2(${p}) = ${e} - ${n} + ${2 * p} = ${vgMultiComponent}
 
 ---
 
 **Academic Meaning & Exam Significance:**
-1. **Linearly Independent Paths**: $V(G)$ defines the **upper bound on the number of basis paths** required to achieve 100% statement and branch coverage.
+1. **Linearly Independent Paths**: V(G) defines the **upper bound on the number of basis paths** required to achieve 100% statement and branch coverage.
 2. **Testing Effort**: The software testing team must design at minimum **${vgFormula1} basis test cases** to ensure every branch condition is evaluated at least once in both True and False states.
 3. **Risk Profile**:
-   - $1 - 10$: Simple program, low risk, high testability.
-   - $11 - 20$: Moderate complexity, moderate risk.
-   - $21 - 50$: Complex program, high risk; refactoring into smaller modular functions recommended.
+   - 1 – 10: Simple program, low risk, high testability.
+   - 11 – 20: Moderate complexity, moderate risk.
+   - 21 – 50: Complex program, high risk; refactoring into smaller modular functions recommended.
 
 ${generateTopicDiagram("cyclomatic complexity")}`;
   }
@@ -377,8 +478,8 @@ In SQA, the **Defect Removal Model** tracks how defects introduced in early phas
 - **Initial Injected Defects**: 100 defects introduced during Requirements Phase.
 - **Phase Efficiencies**:
   - Requirements Inspection: 50% removal efficiency
-  - Design Inspection: 60% removal efficiency, Amplification Factor = $1.5$
-  - Coding / Unit Testing: 70% removal efficiency, Amplification Factor = $2.0$
+  - Design Inspection: 60% removal efficiency, Amplification Factor = 1.5
+  - Coding / Unit Testing: 70% removal efficiency, Amplification Factor = 2.0
   - System / Acceptance Testing: Final residual detection
 
 ---
@@ -386,18 +487,18 @@ In SQA, the **Defect Removal Model** tracks how defects introduced in early phas
 | Phase | Incoming Defects | Amplified Defects | Removal Efficiency (%) | Defects Removed | Defects Passed Forward | Cost per Defect | Total Phase Cost |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1. Requirements** | 100 | 100 | 50% | **50** | **50** | $10 | $500 |
-| **2. Design** | 50 | $50 \\times 1.5 = 75$ | 60% | **45** | **30** | $50 | $2,250 |
-| **3. Coding / Unit Test**| 30 | $30 \\times 2.0 = 60$ | 70% | **42** | **18** | $250 | $10,500 |
+| **2. Design** | 50 | 50 × 1.5 = 75 | 60% | **45** | **30** | $50 | $2,250 |
+| **3. Coding / Unit Test**| 30 | 30 × 2.0 = 60 | 70% | **42** | **18** | $250 | $10,500 |
 | **4. System Testing** | 18 | 18 | 80% | **14** | **4** | $1,000 | $14,000 |
 | **5. Production (Field)**| 4 | 4 | N/A | **4** | **0** | $10,000 | $40,000 |
 
 ---
 
 #### Key Deductions for SQA Students:
-1. **Defect Amplification**: A single requirements defect left uncorrected in design typically causes **$1.5$ to $3.0$ secondary defects** in code and interfaces.
+1. **Defect Amplification**: A single requirements defect left uncorrected in design typically causes **1.5 to 3.0 secondary defects** in code and interfaces.
 2. **Defect Removal Efficiency (DRE)**:
-   $$DRE = \\frac{E}{E + D}$$
-   Where $E$ is defects found before release, and $D$ is defects found after release.
+   DRE = E / (E + D)
+   Where E is defects found before release, and D is defects found after release.
 3. **Boehm's Economic Law of SQA**: A defect caught in production costs up to **100x to 1000x** more than finding it during requirements review.
 
 ${generateTopicDiagram("defect removal model")}`;
@@ -622,7 +723,7 @@ ${fileContext.slice(0, 500)}...
 
 #### Recommendations for this Paper:
 1. **Review Definitions**: Ensure you distinguish between Fault, Error, and Failure.
-2. **Show Calculations**: Always state the general formula before substituting numbers (e.g. $V(G) = E - N + 2$).
+2. **Show Calculations**: Always state the general formula before substituting numbers (e.g. V(G) = E - N + 2).
 3. **Diagrams**: Supplement your written explanations with structured architectural flowcharts and class models.
 
 ${generateTopicDiagram(files[0].name)}`;
