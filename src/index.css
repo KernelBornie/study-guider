@@ -1,1 +1,79 @@
 @import "tailwindcss";
+
+@layer components {
+  /* Markdown styling enhancements */
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.825rem;
+  }
+
+  .prose th {
+    background-color: rgba(2, 6, 23, 0.9);
+    color: #93c5fd;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #334155;
+  }
+
+  .prose td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #1e293b;
+    vertical-align: top;
+  }
+
+  .prose tr:nth-child(even) td {
+    background-color: rgba(15, 23, 42, 0.5);
+  }
+
+  .prose p {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  .prose ul, .prose ol {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+
+  .prose li {
+    margin-bottom: 0.25rem;
+  }
+
+  .prose strong {
+    color: #f8fafc;
+    font-weight: 700;
+  }
+
+  .prose code {
+    background-color: rgba(2, 6, 23, 0.8);
+    color: #38bdf8;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.25rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8em;
+    border: 1px solid #334155;
+  }
+
+  .prose pre {
+    background-color: #020617;
+    border: 1px solid #1e293b;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+  }
+
+  .prose pre code {
+    background: transparent;
+    padding: 0;
+    border: none;
+    color: #e2e8f0;
+  }
+}
