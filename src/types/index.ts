@@ -4,6 +4,9 @@ export interface SubQuestion {
   marks: number;
   question: string;
   answer: string;
+  subNumber?: string;
+  text?: string;
+  modelAnswer?: string;
   keyPoints?: string[];
   diagramType?: 'prototyping' | 'defect-removal' | 'formal-review' | 'mccall-tree' | 'error-chain';
 }
@@ -12,8 +15,10 @@ export interface Question {
   id: string;
   number: string;
   title?: string;
+  topic?: string;
   marks: number;
-  subQuestions: SubQuestion[];
+  subQuestions?: SubQuestion[];
+  questions?: SubQuestion[];
 }
 
 export interface Section {
@@ -32,7 +37,9 @@ export interface Paper {
   duration: string;
   totalMarks: number;
   venue?: string;
-  paperType?: 'Final Exam' | 'Test' | 'Assessment' | 'Quiz';
+  paperType?: 'Final Exam' | 'Test' | 'Assessment' | 'Quiz' | 'Study Paper';
+  structure?: string;
+  category?: string;
   sections: Section[];
 }
 

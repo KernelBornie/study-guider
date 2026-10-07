@@ -41,6 +41,7 @@ export default function CoursePage() {
 
   const filteredPapers = course.papers.filter((paper) => {
     if (filterType === "all") return true;
+    if (filterType === "study" && (paper.category === "Study Paper" || paper.paperType === "Study Paper" || paper.title.toLowerCase().includes("study guide"))) return true;
     if (filterType === "final" && (paper.paperType === "Final Exam" || paper.title.toLowerCase().includes("final"))) return true;
     if (filterType === "test" && (paper.paperType === "Test" || paper.title.toLowerCase().includes("test"))) return true;
     if (filterType === "assessment" && (paper.paperType === "Assessment" || paper.title.toLowerCase().includes("assessment"))) return true;
@@ -88,7 +89,9 @@ export default function CoursePage() {
             </div>
             <div className="px-3.5 py-2 bg-slate-950 rounded-lg border border-slate-800">
               <span className="text-slate-400 block text-[10px]">Curriculum Year</span>
-              <span className="text-blue-400 font-bold text-sm">2023 – 2024</span>
+              <span className="text-blue-400 font-bold text-sm">
+                {course.code === "CSC 4630" ? "2023 – 2026" : "2023 – 2024"}
+              </span>
             </div>
           </div>
         </div>
@@ -96,7 +99,7 @@ export default function CoursePage() {
 
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="text-slate-400 mr-1 flex items-center gap-1">
             <Filter className="w-3.5 h-3.5" />
             Filter:
@@ -108,6 +111,14 @@ export default function CoursePage() {
             }`}
           >
             All Papers ({course.papers.length})
+          </button>
+          <button
+            onClick={() => setFilterType("study")}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              filterType === "study" ? "bg-blue-600 text-white font-medium" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            Study Paper
           </button>
           <button
             onClick={() => setFilterType("final")}
@@ -155,7 +166,7 @@ export default function CoursePage() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
-                      {paper.paperType || "Final Exam"}
+                      {paper.category || paper.paperType || "Final Exam"}
                     </span>
                     <span className="text-xs text-slate-400 font-mono">
                       Year: {paper.year}
@@ -174,15 +185,15 @@ export default function CoursePage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 font-mono">
                     <span className="flex items-center gap-1 text-slate-300">
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
-                      {paper.duration}
+                      Duration: {paper.duration}
                     </span>
                     <span className="flex items-center gap-1 text-slate-300">
                       <Award className="w-3.5 h-3.5 text-emerald-400" />
-                      {paper.totalMarks} Marks
+                      Marks: {paper.totalMarks} Marks
                     </span>
                     <span className="flex items-center gap-1 text-slate-300">
                       <Layers className="w-3.5 h-3.5 text-blue-400" />
-                      {paper.sections.length} Section{paper.sections.length !== 1 ? "s" : ""} ({totalQuestions} Questions)
+                      Sections: {paper.structure || `${paper.sections.length} Section${paper.sections.length !== 1 ? "s" : ""} (${totalQuestions} Questions)`}
                     </span>
                   </div>
                 </div>

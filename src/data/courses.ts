@@ -33,7 +33,8 @@ export const buildGlobalSearchIndex = (allCourses: Course[]): FlatSearchItem[] =
     for (const paper of course.papers) {
       for (const section of paper.sections) {
         for (const q of section.questions) {
-          for (const sq of q.subQuestions) {
+          const subList = q.subQuestions || q.questions || [];
+          for (const sq of subList) {
             results.push({
               courseSlug: course.slug,
               courseCode: course.code,
@@ -42,10 +43,10 @@ export const buildGlobalSearchIndex = (allCourses: Course[]): FlatSearchItem[] =
               paperTitle: paper.title,
               questionId: sq.id,
               questionNumber: q.number,
-              questionTitle: q.title,
-              subQuestionLabel: sq.label,
-              questionText: sq.question,
-              answerText: sq.answer,
+              questionTitle: q.topic || q.title,
+              subQuestionLabel: sq.label || sq.subNumber || "",
+              questionText: sq.question || sq.text || "",
+              answerText: sq.answer || sq.modelAnswer || "",
             });
           }
         }

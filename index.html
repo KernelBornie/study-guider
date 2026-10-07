@@ -17,6 +17,21 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script>
+      // Ignore benign Vite HMR WebSocket connection errors per environment guidelines
+      window.addEventListener('error', function(e) {
+        if (e && e.message && (e.message.includes('WebSocket') || e.message.includes('createWebSocketModuleRunnerTransport'))) {
+          e.stopImmediatePropagation();
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && (e.reason ? (e.reason.message || String(e.reason)) : '');
+        if (reason && (reason.includes('WebSocket') || reason.includes('createWebSocketModuleRunnerTransport'))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

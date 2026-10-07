@@ -24,6 +24,7 @@ import { DiagramDefectRemoval } from "@/components/DiagramDefectRemoval";
 import { DiagramFormalDesignReview } from "@/components/DiagramFormalDesignReview";
 import { DiagramMcCallTree } from "@/components/DiagramMcCallTree";
 import { DiagramErrorChain } from "@/components/DiagramErrorChain";
+import MermaidDiagram from "@/components/MermaidDiagram";
 
 export default function PaperPage() {
   const { courseSlug, paperSlug } = useParams<{ courseSlug: string; paperSlug: string }>();
@@ -94,7 +95,19 @@ export default function PaperPage() {
 
         <div className="flex items-center gap-2">
           <Link
-            to={`/ai?q=${encodeURIComponent(`Explain key concepts, formulas, and revision tips for ${course.code} ${paper.title}`)}`}
+            to={`/ai?q=${encodeURIComponent(
+              `Please assist me with revising the examination paper:\n` +
+              `Title: ${paper.title} (${course.code} - ${course.title})\n` +
+              `Venue: ${paper.venue || "The University of Zambia"}\n` +
+              `Duration: ${paper.duration} | Total Marks: ${paper.totalMarks} Marks\n` +
+              `Structure: ${paper.structure || `${paper.sections.length} Sections`}\n\n` +
+              `Topics & Questions Overview:\n` +
+              paper.sections.map((sec) =>
+                `### ${sec.name}\n` +
+                sec.questions.map((q) => `- ${q.number}: ${q.topic || q.title || "Topic"} [${q.marks} marks]`).join("\n")
+              ).join("\n\n") +
+              `\n\nPlease provide an executive study guide covering the key principles, model answers, and exam preparation tips for each topic.`
+            )}`}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
           >
             <span>🤖 Ask AI About This Paper</span>
@@ -190,13 +203,17 @@ export default function PaperPage() {
             const visibleQuestions = section.questions.filter((q) => {
               if (!searchInPaper.trim()) return true;
               const term = searchInPaper.toLowerCase();
+              const subList = q.subQuestions || q.questions || [];
               return (
                 q.number.toLowerCase().includes(term) ||
                 (q.title && q.title.toLowerCase().includes(term)) ||
-                q.subQuestions.some(
+                (q.topic && q.topic.toLowerCase().includes(term)) ||
+                subList.some(
                   (sq) =>
-                    sq.question.toLowerCase().includes(term) ||
-                    sq.answer.toLowerCase().includes(term)
+                    (sq.question && sq.question.toLowerCase().includes(term)) ||
+                    (sq.text && sq.text.toLowerCase().includes(term)) ||
+                    (sq.answer && sq.answer.toLowerCase().includes(term)) ||
+                    (sq.modelAnswer && sq.modelAnswer.toLowerCase().includes(term))
                 )
               );
             });
@@ -204,7 +221,7 @@ export default function PaperPage() {
             if (visibleQuestions.length === 0) return null;
 
             return (
-              <section key={section.id} className="space-y-6">
+              <section key={section.id} className="space-y-6 print:break-before-page">
                 {/* Section Header */}
                 <div className="border-b border-slate-800 pb-3">
                   <div className="flex items-center justify-between">
@@ -227,130 +244,169 @@ export default function PaperPage() {
 
                 {/* Questions List */}
                 <div className="space-y-8">
-                  {visibleQuestions.map((q) => (
-                    <div
-                      key={q.id}
-                      id={q.id}
-                      className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 shadow-sm"
-                    >
-                      {/* Question Banner */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                        <div className="space-y-1">
-                          <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-widest">
-                            {q.number}
+                  {visibleQuestions.map((q) => {
+                    const subList = q.subQuestions || q.questions || [];
+
+                    return (
+                      <div
+                        key={q.id}
+                        id={q.id}
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 shadow-sm"
+                      >
+                        {/* Question Banner */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                          <div className="space-y-1">
+                            <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-widest">
+                              {q.number}
+                            </span>
+                            <h3 className="text-lg font-bold text-white">
+                              {q.topic || q.title || q.number}
+                            </h3>
+                          </div>
+
+                          <span className="px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-950 border border-slate-800 text-emerald-400">
+                            {q.marks} Marks
                           </span>
-                          <h3 className="text-lg font-bold text-white">
-                            {q.title || q.number}
-                          </h3>
                         </div>
 
-                        <span className="px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-950 border border-slate-800 text-emerald-400">
-                          {q.marks} Marks
-                        </span>
-                      </div>
+                        {/* Sub-Questions */}
+                        <div className="space-y-6">
+                          {subList.map((sq) => {
+                            const isCopied = copiedId === sq.id;
+                            const isDiagramOpen = activeDiagram === sq.id;
+                            const qText = sq.question || sq.text || "";
+                            const aText = sq.answer || sq.modelAnswer || "";
+                            const qLabel = sq.label || sq.subNumber || "";
 
-                      {/* Sub-Questions */}
-                      <div className="space-y-6">
-                        {q.subQuestions.map((sq) => {
-                          const isCopied = copiedId === sq.id;
-                          const isDiagramOpen = activeDiagram === sq.id;
-
-                          return (
-                            <div
-                              key={sq.id}
-                              id={sq.id}
-                              className="rounded-lg bg-slate-950/70 border border-slate-800/90 p-5 space-y-4"
-                            >
-                              {/* Sub-question prompt header */}
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono font-bold text-blue-400 px-2 py-0.5 rounded bg-blue-500/10">
-                                      Part {sq.label}
-                                    </span>
-                                    <span className="text-slate-400 font-mono">
-                                      [{sq.marks} marks]
-                                    </span>
+                            return (
+                              <div
+                                key={sq.id}
+                                id={sq.id}
+                                className="rounded-lg bg-slate-950/70 border border-slate-800/90 p-5 space-y-4"
+                              >
+                                {/* Sub-question prompt header */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="space-y-1 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono font-bold text-blue-400 px-2 py-0.5 rounded bg-blue-500/10">
+                                        Part {qLabel}
+                                      </span>
+                                      <span className="text-slate-400 font-mono">
+                                        [{sq.marks} marks]
+                                      </span>
+                                    </div>
+                                    <div className="text-slate-200 text-sm font-medium mt-1 whitespace-pre-line leading-relaxed">
+                                      {qText}
+                                    </div>
                                   </div>
-                                  <div className="text-slate-200 text-sm font-medium mt-1 whitespace-pre-line leading-relaxed">
-                                    {sq.question}
-                                  </div>
-                                </div>
 
-                                <button
-                                  onClick={() => handleCopy(sq.id, `${sq.question}\n\nAnswer:\n${sq.answer}`)}
-                                  className="text-slate-400 hover:text-white p-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors shrink-0"
-                                  title="Copy question and answer"
-                                >
-                                  {isCopied ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
-
-                              {/* Answer Box */}
-                              <div className="p-4 rounded-lg bg-slate-900/90 border-l-4 border-emerald-500 border-y border-r border-slate-800 text-xs text-slate-200 leading-relaxed font-sans overflow-x-auto">
-                                <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold mb-2 flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  Verified Solution / Model Answer:
-                                </div>
-                                <div className="prose prose-invert prose-xs max-w-none prose-headings:text-white prose-p:leading-relaxed prose-table:my-2 prose-th:bg-slate-950 prose-th:p-2 prose-td:p-2 prose-td:border-b prose-td:border-slate-800">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {sq.answer}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-
-                              {/* Key Points Callout (if available) */}
-                              {sq.keyPoints && sq.keyPoints.length > 0 && (
-                                <div className="p-3 bg-blue-950/20 border border-blue-500/20 rounded-lg text-xs space-y-1.5">
-                                  <span className="text-blue-400 font-bold uppercase tracking-wider text-[10px] block">
-                                    Key Marking Points:
-                                  </span>
-                                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-slate-300 text-[11px]">
-                                    {sq.keyPoints.map((kp, idx) => (
-                                      <li key={idx} className="flex items-start gap-1.5">
-                                        <span className="text-blue-400 shrink-0">•</span>
-                                        <span>{kp}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {/* Interactive Visual Diagram Toggle */}
-                              {sq.diagramType && (
-                                <div className="space-y-3 pt-1">
                                   <button
-                                    onClick={() => setActiveDiagram(isDiagramOpen ? null : sq.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold transition-colors"
+                                    onClick={() => handleCopy(sq.id, `${qText}\n\nAnswer:\n${aText}`)}
+                                    className="text-slate-400 hover:text-white p-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors shrink-0"
+                                    title="Copy question and answer"
                                   >
-                                    <PenTool className="w-3.5 h-3.5 text-blue-400" />
-                                    <span>
-                                      {isDiagramOpen ? "Hide Interactive Visual Diagram" : "View Interactive Visual Diagram"}
-                                    </span>
-                                    {isDiagramOpen ? (
-                                      <ChevronUp className="w-3.5 h-3.5 ml-1" />
+                                    {isCopied ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-400" />
                                     ) : (
-                                      <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                                      <Copy className="w-3.5 h-3.5" />
                                     )}
                                   </button>
-
-                                  {isDiagramOpen && (
-                                    <div className="p-4 bg-slate-950 rounded-xl border border-blue-500/30 overflow-hidden shadow-2xl transition-all">
-                                      {renderDiagram(sq.diagramType)}
-                                    </div>
-                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+
+                                {/* Answer Box */}
+                                <div className="p-4 rounded-lg bg-slate-900/90 border-l-4 border-emerald-500 border-y border-r border-slate-800 text-xs text-slate-200 leading-relaxed font-sans overflow-x-auto">
+                                  <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold mb-2 flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Verified Solution / Model Answer:
+                                  </div>
+                                  <div className="prose prose-invert prose-xs max-w-none prose-headings:text-white prose-p:leading-relaxed prose-table:my-2 prose-th:bg-slate-950 prose-th:p-2 prose-td:p-2 prose-td:border-b prose-td:border-slate-800">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        pre({ children }) {
+                                          return <>{children}</>;
+                                        },
+                                        code({ className, children, node, ...props }: any) {
+                                          const match = /language-(\w+)/.exec(className || "");
+                                          const lang = match?.[1];
+                                          const code = String(children).replace(/\n$/, "");
+
+                                          if (lang === "mermaid") {
+                                            return <MermaidDiagram code={code} />;
+                                          }
+
+                                          if (match || String(children).includes("\n")) {
+                                            return (
+                                              <pre className="bg-slate-950 text-slate-200 p-3 rounded-lg border border-slate-800 overflow-x-auto text-xs font-mono my-2 leading-normal">
+                                                <code className={className} {...props}>
+                                                  {children}
+                                                </code>
+                                              </pre>
+                                            );
+                                          }
+
+                                          return (
+                                            <code className="bg-slate-900 border border-slate-800 text-sky-300 px-1.5 py-0.5 rounded text-[12px] font-mono" {...props}>
+                                              {children}
+                                            </code>
+                                          );
+                                        },
+                                      }}
+                                    >
+                                      {aText}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+
+                                {/* Key Points Callout (if available) */}
+                                {sq.keyPoints && sq.keyPoints.length > 0 && (
+                                  <div className="p-3 bg-blue-950/20 border border-blue-500/20 rounded-lg text-xs space-y-1.5">
+                                    <span className="text-blue-400 font-bold uppercase tracking-wider text-[10px] block">
+                                      Key Marking Points:
+                                    </span>
+                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-slate-300 text-[11px]">
+                                      {sq.keyPoints.map((kp, idx) => (
+                                        <li key={idx} className="flex items-start gap-1.5">
+                                          <span className="text-blue-400 shrink-0">•</span>
+                                          <span>{kp}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {/* Interactive Visual Diagram Toggle */}
+                                {sq.diagramType && (
+                                  <div className="space-y-3 pt-1">
+                                    <button
+                                      onClick={() => setActiveDiagram(isDiagramOpen ? null : sq.id)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold transition-colors"
+                                    >
+                                      <PenTool className="w-3.5 h-3.5 text-blue-400" />
+                                      <span>
+                                        {isDiagramOpen ? "Hide Interactive Visual Diagram" : "View Interactive Visual Diagram"}
+                                      </span>
+                                      {isDiagramOpen ? (
+                                        <ChevronUp className="w-3.5 h-3.5 ml-1" />
+                                      ) : (
+                                        <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                                      )}
+                                    </button>
+
+                                    {isDiagramOpen && (
+                                      <div className="p-4 bg-slate-950 rounded-xl border border-blue-500/30 overflow-hidden shadow-2xl transition-all">
+                                        {renderDiagram(sq.diagramType)}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             );

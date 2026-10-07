@@ -393,23 +393,32 @@ export default function AIPage() {
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          code({ inline, className, children, ...props }: any) {
+                          pre({ children }) {
+                            return <>{children}</>;
+                          },
+                          code({ className, children, node, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || "");
                             const lang = match?.[1];
                             const code = String(children).replace(/\n$/, "");
 
-                            if (!inline && lang === "mermaid") {
+                            if (lang === "mermaid") {
                               return <MermaidDiagram code={code} />;
                             }
 
-                            return inline ? (
+                            if (match || String(children).includes("\n")) {
+                              return (
+                                <pre className="bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 overflow-x-auto text-[14px] font-mono my-3 leading-normal">
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                </pre>
+                              );
+                            }
+
+                            return (
                               <code className="bg-slate-900 border border-slate-800 text-sky-300 px-2 py-0.5 rounded text-[13px] font-mono" {...props}>
                                 {children}
                               </code>
-                            ) : (
-                              <pre className="bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 overflow-x-auto text-[14px] font-mono my-3 leading-normal">
-                                <code>{children}</code>
-                              </pre>
                             );
                           },
                         }}
