@@ -451,13 +451,59 @@ McCall categorised software quality into **3 operational perspectives** encompas
 3. **Product Transition**: Portability, Reusability, Interoperability.`);
   }
 
+  // Dynamic search across all indexed UNZA courses & study guides (CSC 3600, CSC 4630, CSC 4642)
+  const globalIndex = buildGlobalSearchIndex(courses);
+  const words = qLower
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3);
+
+  let bestItem: FlatSearchItem | null = null;
+  let bestScore = 0;
+
+  for (const item of globalIndex) {
+    let score = 0;
+    const itemTitle = (item.questionTitle || "").toLowerCase();
+    const itemText = (item.questionText || "").toLowerCase();
+    const itemAns = (item.answerText || "").toLowerCase();
+    const itemCourse = item.courseCode.toLowerCase();
+
+    // Strong direct phrase match
+    if (fullInput.length > 5 && (itemTitle.includes(qLower) || itemText.includes(qLower))) {
+      score += 40;
+    }
+
+    // Specific course match
+    if (qLower.includes(itemCourse)) {
+      score += 10;
+    }
+
+    // Keyword relevance
+    for (const kw of words) {
+      if (itemTitle.includes(kw)) score += 6;
+      if (itemText.includes(kw)) score += 4;
+      if (itemAns.includes(kw)) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = item;
+    }
+  }
+
+  if (bestItem && bestScore >= 10) {
+    return stripLatex(
+      `### 🎓 UNZA Verified Knowledge Base: ${bestItem.courseCode} — ${bestItem.paperTitle}\n**${bestItem.questionNumber}${bestItem.questionTitle ? ` · ${bestItem.questionTitle}` : ""}${bestItem.subQuestionLabel ? ` (${bestItem.subQuestionLabel})` : ""}**\n\n${bestItem.questionText ? `> *Question:* ${bestItem.questionText}\n\n` : ""}${bestItem.answerText}`
+    );
+  }
+
   return stripLatex(`### 🎓 UNZA Academic Study Assistant
 
 *(Notice: No attachments provided. Answering from UNZA Curriculum Knowledge Base)*
 
 You asked: **"${fullInput}"**
 
-To solve exam questions:
-- Attach your past paper PDF (e.g. \`CSC 4642 2024 EXAM.pdf\`).
-- Ask *"Solve all questions in order"* or *"Solve Question 1"*.`);
+To explore full model solutions and diagrams:
+- Navigate to the **Courses** menu to view complete verified solutions for **CSC 3600** (18 Sommerville Modules & 10 UML Topics), **CSC 4630** (Advanced SE), and **CSC 4642** (SQA).
+- Attach any past paper PDF or exam scan to receive exact question-by-question model answers.`);
 }

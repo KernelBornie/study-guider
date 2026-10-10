@@ -24,6 +24,7 @@ import { DiagramDefectRemoval } from "@/components/DiagramDefectRemoval";
 import { DiagramFormalDesignReview } from "@/components/DiagramFormalDesignReview";
 import { DiagramMcCallTree } from "@/components/DiagramMcCallTree";
 import { DiagramErrorChain } from "@/components/DiagramErrorChain";
+import { DiagramWhiteBoxTesting } from "@/components/DiagramWhiteBoxTesting";
 import MermaidDiagram from "@/components/MermaidDiagram";
 
 export default function PaperPage() {
@@ -74,6 +75,8 @@ export default function PaperPage() {
         return <DiagramMcCallTree />;
       case "error-chain":
         return <DiagramErrorChain />;
+      case "whitebox":
+        return <DiagramWhiteBoxTesting />;
       default:
         return null;
     }

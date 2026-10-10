@@ -283,7 +283,8 @@ export const csc4642_ExamReadyGuide: Paper = {
                 "Prototyping: Iterative, user feedback, rapid mockups, good for ambiguous UI",
                 "Spiral: Risk-driven, iterative, Boehm Win-Win negotiation, complex projects",
                 "Object-Oriented: Component-based, reuse of pre-tested libraries, cost efficient"
-              ]
+              ],
+              diagramType: "prototyping"
             }
           ]
         },
@@ -329,7 +330,8 @@ export const csc4642_ExamReadyGuide: Paper = {
                 "Three formulas: V(G)=R, V(G)=E-N+2, V(G)=P+1",
                 "Calculation: 21 - 17 + 2 = 6; 5 + 1 = 6; R = 6",
                 "Result: 6 independent paths, moderate complexity"
-              ]
+              ],
+              diagramType: "whitebox"
             }
           ]
         },

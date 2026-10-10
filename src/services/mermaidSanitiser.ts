@@ -1,8 +1,7 @@
 /**
  * UNZA Study-Guider Mermaid Sanitiser & Validator Service
  * Cleans AI-generated Mermaid code, eliminates LaTeX fragments,
- * normalises headers, quotes unquoted complex node labels,
- * and fixes syntax issues before rendering.
+ * normalises headers, fixes escaped line breaks, and preserves valid syntax.
  */
 
 // LaTeX to plain text replacement table
@@ -63,14 +62,14 @@ const KNOWN_DIAGRAM_HEADERS = [
 ];
 
 /**
- * Sanitises raw AI Mermaid code:
+ * Sanitises raw Mermaid code:
  * 1. Strips stray markdown fences, 'code', 'mermaid', 'java' lines
- * 2. Normalises tabs to 4 spaces
- * 3. Removes trailing semicolons
+ * 2. Normalises tabs to spaces
+ * 3. Strips LaTeX from node labels
  * 4. Normalises old 'graph TD' / 'graph LR' to 'flowchart TD' / 'flowchart LR'
- * 5. Prepends 'flowchart TD' if diagram header is missing
- * 6. Strips LaTeX from node labels
- * 7. Enforces quoting on node labels containing spaces, punctuation, or brackets
+ * 5. Replaces literal '\n' inside flowchart labels with HTML '<br/>'
+ * 6. Ensures link texts containing punctuation are quoted in pipes: |"..."|
+ * 7. Enforces valid node shapes without double-quoting or corrupting sequence/class diagrams
  * 8. Auto-closes unclosed subgraphs
  */
 export function sanitiseMermaid(rawCode: string): string {
@@ -86,17 +85,47 @@ export function sanitiseMermaid(rawCode: string): string {
     .replace(/^mermaid\s*$/gim, "")
     .replace(/^java\s*$/gim, "");
 
-  // 2. Replace tabs with 4 spaces
-  cleaned = cleaned.replace(/\t/g, "    ");
+  // 2. Replace tabs with 2 spaces
+  cleaned = cleaned.replace(/\t/g, "  ");
 
   // 3. Strip all LaTeX fragments
   cleaned = stripLatex(cleaned);
 
-  // 4. Split into lines and process line by line
+  // 4. Split into lines and inspect diagram header
   const rawLines = cleaned.split(/\r?\n/);
   const processedLines: string[] = [];
   let subgraphCount = 0;
   let endCount = 0;
+
+  // Determine diagram type from the first non-empty line
+  let diagramType = "";
+  for (const l of rawLines) {
+    const trimmed = l.trim();
+    if (!trimmed) continue;
+    const firstWord = trimmed.split(/[\s[({:]/)[0].toLowerCase();
+    for (const h of KNOWN_DIAGRAM_HEADERS) {
+      if (firstWord.startsWith(h)) {
+        diagramType = h;
+        break;
+      }
+    }
+    if (diagramType) break;
+  }
+
+  // If no known header was found, infer based on syntax
+  if (!diagramType) {
+    if (rawLines.some((l) => /class\s+[A-Za-z0-9_]+/i.test(l))) {
+      diagramType = "classdiagram";
+    } else if (rawLines.some((l) => /->>|-->>/.test(l))) {
+      diagramType = "sequencediagram";
+    } else if (rawLines.some((l) => /state\s+/i.test(l))) {
+      diagramType = "statediagram-v2";
+    } else {
+      diagramType = "flowchart";
+    }
+  }
+
+  const isFlowchart = diagramType.startsWith("flowchart") || diagramType.startsWith("graph");
 
   for (let line of rawLines) {
     let trimmed = line.trim();
@@ -111,8 +140,8 @@ export function sanitiseMermaid(rawCode: string): string {
       continue;
     }
 
-    // Remove semicolons at the end of statements
-    if (trimmed.endsWith(";")) {
+    // Remove trailing semicolons in flowchart / graph lines (unless in HTML entity like &nbsp;)
+    if (trimmed.endsWith(";") && !trimmed.endsWith("&nbsp;") && !trimmed.endsWith("&#59;")) {
       line = line.replace(/;\s*$/, "");
       trimmed = line.trim();
     }
@@ -131,61 +160,46 @@ export function sanitiseMermaid(rawCode: string): string {
       line = line.replace(/^\s*graph\s*$/i, "flowchart TD");
     }
 
-    // Sanitise node shapes & labels: Ensure bracket contents with spaces or special chars are quoted
-    // [label] -> ["label"] if not already quoted and contains spaces or special characters
-    // (label) -> ("label")
-    // {label} -> {"label"}
-    // ([label]) -> (["label"])
-    // [[label]] -> [["label"]]
-    // [(label)] -> [("label")]
-    // ((label)) -> (("label"))
+    // Flowchart-specific cleanups
+    if (isFlowchart) {
+      // 1. Convert literal '\n' or '\\n' in node labels to standard '<br/>'
+      line = line.replace(/\\n/g, "<br/>");
 
-    // Quoting inside [ ... ]
-    line = line.replace(/([a-zA-Z0-9_-]+)\[([^"\]\n]+)\]/g, (match, id, label) => {
-      // If label has spaces, colons, brackets, or math symbols, quote it
-      if (/[\s:;,()\[\]{}=+\-*/><#]/.test(label)) {
-        return `${id}["${label.replace(/"/g, "'")}"]`;
-      }
-      return match;
-    });
+      // 2. Fix pipe link texts that contain punctuation (like '/', ':', '(', ')', '.')
+      // e.g. -->|HTTPS / TLS 1.3 (Port 443)| becomes -->|"HTTPS / TLS 1.3 (Port 443)"|
+      line = line.replace(/\|([^"|\r\n]+)\|/g, (match, linkText) => {
+        const trimmedText = linkText.trim();
+        if (/[\/():;]/.test(trimmedText)) {
+          return `|"${trimmedText}"|`;
+        }
+        return match;
+      });
 
-    // Quoting inside ( ... )
-    line = line.replace(/([a-zA-Z0-9_-]+)\(([^"\)\n]+)\)/g, (match, id, label) => {
-      if (/[\s:;,()\[\]{}=+\-*/><#]/.test(label)) {
-        return `${id}("${label.replace(/"/g, "'")}")`;
-      }
-      return match;
-    });
-
-    // Quoting inside { ... }
-    line = line.replace(/([a-zA-Z0-9_-]+)\{([^"\}\n]+)\}/g, (match, id, label) => {
-      if (/[\s:;,()\[\]{}=+\-*/><#]/.test(label)) {
-        return `${id}{"${label.replace(/"/g, "'")}"}`;
-      }
-      return match;
-    });
+      // 3. Clean up accidental nested quotes: ["...("something")..."] -> ["...(something)..."]
+      line = line.replace(/\["([^"]*)\("([^"]+)"\)([^"]*)"\]/g, '["$1($2)$3"]');
+    }
 
     processedLines.push(line);
   }
 
-  // 5. Ensure diagram has a known header
-  let firstNonEmpty = processedLines.find((l) => l.trim().length > 0) || "";
-  const firstWord = firstNonEmpty.trim().split(/[\s[({:]/)[0].toLowerCase();
-
-  const hasKnownHeader = KNOWN_DIAGRAM_HEADERS.some((h) => firstWord.startsWith(h));
-
-  if (!hasKnownHeader) {
-    // If it looks like class diagram syntax
-    if (processedLines.some((l) => /class\s+[A-Za-z0-9_]+/i.test(l))) {
-      processedLines.unshift("classDiagram");
-    } else if (processedLines.some((l) => /->>|-->>/.test(l))) {
-      processedLines.unshift("sequenceDiagram");
-    } else if (processedLines.some((l) => /root\(\(.*\)\)/i.test(l))) {
-      processedLines.unshift("mindmap");
-    } else {
-      // Default to flowchart TD
-      processedLines.unshift("flowchart TD");
+  // 5. Ensure diagram has a valid header as first line
+  const firstNonEmptyIndex = processedLines.findIndex((l) => l.trim().length > 0);
+  if (firstNonEmptyIndex !== -1) {
+    const firstWord = processedLines[firstNonEmptyIndex].trim().split(/[\s[({:]/)[0].toLowerCase();
+    const hasHeader = KNOWN_DIAGRAM_HEADERS.some((h) => firstWord.startsWith(h));
+    if (!hasHeader) {
+      if (diagramType === "classdiagram") {
+        processedLines.unshift("classDiagram");
+      } else if (diagramType === "sequencediagram") {
+        processedLines.unshift("sequenceDiagram");
+      } else if (diagramType === "statediagram-v2") {
+        processedLines.unshift("stateDiagram-v2");
+      } else {
+        processedLines.unshift("flowchart TD");
+      }
     }
+  } else {
+    processedLines.unshift("flowchart TD");
   }
 
   // 6. Auto-close unclosed subgraphs
@@ -203,8 +217,6 @@ export function sanitiseMermaid(rawCode: string): string {
 export function extractOffendingLine(code: string, errorMessage: string): { lineNum: number; lineText: string } | null {
   const lines = code.split("\n");
   
-  // Look for line number patterns in Mermaid error messages:
-  // e.g. "Parse error on line 5:" or "at line 5"
   const lineMatch = errorMessage.match(/line\s+(\d+)/i);
   if (lineMatch) {
     const lineNum = parseInt(lineMatch[1], 10);
@@ -213,7 +225,6 @@ export function extractOffendingLine(code: string, errorMessage: string): { line
     }
   }
 
-  // If specific token is mentioned in quotes
   const tokenMatch = errorMessage.match(/Expecting '([^']+)'|got '([^']+)'/i);
   if (tokenMatch) {
     const token = tokenMatch[1] || tokenMatch[2];

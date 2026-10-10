@@ -8,7 +8,7 @@ export interface SubQuestion {
   text?: string;
   modelAnswer?: string;
   keyPoints?: string[];
-  diagramType?: 'prototyping' | 'defect-removal' | 'formal-review' | 'mccall-tree' | 'error-chain';
+  diagramType?: 'prototyping' | 'defect-removal' | 'formal-review' | 'mccall-tree' | 'error-chain' | 'whitebox';
 }
 
 export interface Question {

@@ -1,96 +1,138 @@
 import React, { useState } from 'react';
-import { RefreshCw, CheckCircle2, AlertTriangle, ArrowDown, ArrowRight, UserCheck, Layers, Play } from 'lucide-react';
+import { 
+  RefreshCw, 
+  CheckCircle2, 
+  AlertTriangle, 
+  ArrowDown, 
+  ArrowRight, 
+  UserCheck, 
+  Layers, 
+  Play,
+  RotateCcw,
+  Sparkles,
+  Info,
+  Check
+} from 'lucide-react';
 
 export const DiagramPrototyping: React.FC = () => {
-  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const [activeStep, setActiveStep] = useState<number>(2);
   const [iterationCount, setIterationCount] = useState<number>(1);
+  const [isLooping, setIsLooping] = useState<boolean>(false);
 
   const steps = [
     {
       id: 1,
       name: "Requirements Determination",
-      subtitle: "by Customer",
-      desc: "Initial high-level requirements gathering. Customers describe needs, core features, and system objectives.",
-      role: "Client & System Analyst",
-      qa: "Requirement ambiguity check, scope definition, feasibility screening"
+      subtitle: "by Customer (Initial Scope)",
+      desc: "Initial high-level requirements gathering. Customers describe business needs, core workflows, and system objectives without rigid functional specifications.",
+      role: "Client, End Users & System Analyst",
+      qa: "Requirement ambiguity check, scope feasibility screening",
+      isLoop: false
     },
     {
       id: 2,
       name: "Prototype Design",
-      subtitle: "Quick Architectural Sketch",
-      desc: "Rapid conceptual design focusing on user interface screens, interaction flow, and input/output behavior.",
+      subtitle: "Quick Architectural & UI Sketch",
+      desc: "Rapid conceptual design focusing on user interface screens, interaction ergonomics, and input/output behavior rather than internal robustness.",
       role: "UI/UX Designer & Software Architect",
-      qa: "Design guidelines check, screen usability heuristic review"
+      qa: "Design guidelines compliance, usability heuristic inspection",
+      isLoop: true
     },
     {
       id: 3,
       name: "Prototype Implementation",
       subtitle: "Working Mockup / Prototype Build",
-      desc: "Fast construction of working screens and simulated services. Focuses on visible functionality rather than full backend robustness.",
-      role: "Development Team",
-      qa: "Code standards check for reusable core modules, smoke testing"
+      desc: "Fast construction of working screens and simulated services. Focuses on visible user workflows and screen layouts rather than back-end database concurrency.",
+      role: "Rapid Prototyping Engineers / Dev Team",
+      qa: "Smoke testing, UI responsiveness, mock data integrity",
+      isLoop: true
     },
     {
       id: 4,
       name: "Prototype Evaluation",
       subtitle: "by Customer & End Users",
-      desc: "Actual users interact with the working prototype. They experience the workflow and identify what works, what is missing, and what must change.",
-      role: "Customer, End Users, Review Facilitator",
-      qa: "Structured usability test scenarios, user observation logs, feedback checklists"
+      desc: "Actual users interact directly with the working mockup in hands-on trials. They experience screen transitions, spot missing data fields, and formulate exact needs.",
+      role: "Customer, Real End Users, Review Facilitator",
+      qa: "Structured usability test scenarios, user observation logs, feedback checklists",
+      isLoop: true
     },
     {
       id: 5,
       name: "Requirements Fulfilled?",
-      subtitle: "Decision Gate",
-      desc: "Evaluation against satisfaction criteria. If requirements are not satisfied, corrections/changes/additions are demanded, looping back to Prototype Design.",
+      subtitle: "Decision Gate (Evaluation Verdict)",
+      desc: "Formal evaluation against satisfaction criteria. If requirements are not yet satisfied, demands for corrections/changes/additions are issued, triggering an iteration loop back to Prototype Design.",
       role: "Customer Sign-off Authority",
-      qa: "Formal gap analysis between user expectations and demonstrated functionality"
+      qa: "Formal gap analysis between user expectations and demonstrated functionality",
+      isLoop: true
     },
     {
       id: 6,
       name: "System Tests & Acceptance Tests",
-      subtitle: "Formal Verification & Validation",
-      desc: "Once the prototype design is accepted, full-scale system construction and formal tests (performance, stress, security, integration) occur.",
+      subtitle: "Full-Scale Verification & Validation",
+      desc: "Once the prototype design is approved, full-scale production engineering occurs followed by comprehensive system, performance, security, and acceptance testing.",
       role: "Independent Testing Unit & SQA Team",
-      qa: "Full test case execution against approved specification"
+      qa: "Full test case execution against approved specifications",
+      isLoop: false
     },
     {
       id: 7,
       name: "System Conversion",
-      subtitle: "Cutover & Deployment",
-      desc: "Data migration, user training, and rollout into the live operating environment.",
-      role: "Deployment Team & Operations",
-      qa: "Installation review (IPR), data conversion validation"
+      subtitle: "Cutover & Production Rollout",
+      desc: "Data migration from legacy stores, user training, deployment cutover, and transition into the live operating environment.",
+      role: "Deployment Team & Operations Unit",
+      qa: "Installation review (IPR), data conversion validation",
+      isLoop: false
     },
     {
       id: 8,
       name: "System Operation & Maintenance",
-      subtitle: "Long-term Support",
-      desc: "Corrective maintenance (bug fixing), adaptive maintenance (environment changes), and perfective maintenance (improvements).",
+      subtitle: "Long-Term Operational Support",
+      desc: "Routine operation accompanied by corrective maintenance (bug fixing), adaptive maintenance (OS/browser upgrades), and perfective maintenance.",
       role: "Maintenance Unit & Support Desk",
-      qa: "Maintenance reviews, defect tracking, MTBF & MTTR logging"
+      qa: "Maintenance reviews, defect tracking, MTBF & MTTR logging",
+      isLoop: false
     }
   ];
 
+  const handleSimulateIteration = () => {
+    setIsLooping(true);
+    setIterationCount(prev => prev + 1);
+    setActiveStep(2);
+    setTimeout(() => setIsLooping(false), 600);
+  };
+
+  const currentStep = steps.find(s => s.id === activeStep) || steps[0];
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-slate-100">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-5">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 text-slate-100 shadow-2xl space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">Exam Diagram · Question 5.a</span>
-          <h3 className="text-lg font-bold text-white">The Prototyping Process Model (UNZA Topic 7, Slide 11)</h3>
-          <p className="text-xs text-slate-400">Click any step or test the iterative feedback loop</p>
+          <span className="text-xs font-bold text-emerald-400 tracking-wider uppercase font-mono flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+            UNZA Topic 7, Slide 11 · Question 5a (10 Marks)
+          </span>
+          <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-0.5">
+            The Prototyping Process Model (Iterative SDLC)
+          </h3>
+          <p className="text-xs text-slate-400 max-w-2xl mt-1 leading-relaxed">
+            The closed-loop development model ideal for ambiguous requirements. Features rapid cycles of <strong>Design → Implementation → Evaluation → Revision Demands</strong> until customer sign-off authorizes full testing and conversion.
+          </p>
         </div>
+
+        {/* Interactive Controls */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIterationCount(prev => prev + 1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-xs font-medium transition-colors"
+            onClick={handleSimulateIteration}
+            className="flex items-center gap-2 px-3.5 py-2 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-xl text-xs font-bold transition-all shadow-md"
+            title="Simulate user feedback demanding changes and increment iteration count"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Simulate Iteration ({iterationCount})
+            <RefreshCw className={`w-3.5 h-3.5 ${isLooping ? 'animate-spin' : ''}`} />
+            <span>Simulate Iteration ({iterationCount})</span>
           </button>
           <button
-            onClick={() => { setIterationCount(1); setActiveStep(null); }}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors"
+            onClick={() => { setIterationCount(1); setActiveStep(2); }}
+            className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold transition-colors"
           >
             Reset
           </button>
@@ -98,211 +140,250 @@ export const DiagramPrototyping: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Visual Flow Canvas */}
-        <div className="lg:col-span-7 bg-slate-950/70 p-4 rounded-lg border border-slate-800/80">
-          <div className="flex flex-col items-center max-w-md mx-auto space-y-3">
+        {/* THE VISUAL FLOWCHART CANVAS */}
+        <div className="lg:col-span-7 bg-slate-950/90 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+              Model Flowchart Diagram
+            </span>
+            <span className="text-[11px] text-slate-500 font-mono">
+              Current: Cycle #{iterationCount}
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center max-w-md mx-auto space-y-2.5">
             
-            {/* Step 1 */}
+            {/* Step 1: Initial Entry Gate */}
             <div
               onClick={() => setActiveStep(1)}
-              className={`w-full text-center p-3 rounded-lg border cursor-pointer transition-all ${
+              className={`w-full text-center p-3.5 rounded-xl border cursor-pointer transition-all ${
                 activeStep === 1 
-                  ? 'bg-blue-950/70 border-blue-400 shadow-md shadow-blue-500/20 ring-1 ring-blue-400' 
-                  : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                  ? 'bg-blue-950/80 border-blue-400 shadow-xl ring-2 ring-blue-500/30' 
+                  : 'bg-slate-900 border-slate-800 hover:border-slate-700'
               }`}
             >
-              <div className="text-xs font-bold text-blue-400 uppercase tracking-wide">Phase 1</div>
-              <div className="font-semibold text-sm text-slate-100">REQUIREMENTS DETERMINATION</div>
-              <div className="text-xs text-slate-400">BY CUSTOMER</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-blue-400 font-bold uppercase">Phase 1</span>
+                <span className="text-[10px] font-mono text-slate-400">Actor: Customer</span>
+              </div>
+              <div className="font-bold text-sm text-white mt-0.5">REQUIREMENTS DETERMINATION</div>
+              <div className="text-[11px] text-slate-400">BY CUSTOMER</div>
             </div>
 
-            <ArrowDown className="w-4 h-4 text-slate-500" />
+            <div className="flex items-center justify-center">
+              <ArrowDown className="w-4 h-4 text-slate-600" />
+            </div>
 
-            {/* Loop Container (Steps 2 to 5) */}
-            <div className="w-full relative border border-dashed border-amber-500/40 rounded-xl p-3 bg-amber-950/10">
-              <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-slate-900 text-[10px] font-semibold text-amber-400 border border-amber-500/30 rounded">
-                Iterative Prototyping Cycle (Current: Cycle #{iterationCount})
+            {/* THE ITERATIVE PROTOTYPING LOOP CONTAINER (Steps 2-5) */}
+            <div className={`w-full relative border-2 border-dashed rounded-2xl p-4 transition-all ${
+              isLooping 
+                ? 'border-amber-400 bg-amber-950/30 shadow-2xl scale-[1.01]' 
+                : 'border-amber-500/40 bg-amber-950/10'
+            }`}>
+              {/* Loop badge header */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1.5">
+                  <RefreshCw className="w-3 h-3 text-amber-400" />
+                  <span>Iterative Prototyping Cycle (Loop #{iterationCount})</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">Repeats until satisfied</span>
               </div>
 
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2.5">
                 {/* Step 2 */}
                 <div
                   onClick={() => setActiveStep(2)}
-                  className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
+                  className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
                     activeStep === 2
-                      ? 'bg-amber-950/80 border-amber-400 shadow-md ring-1 ring-amber-400'
-                      : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                      ? 'bg-amber-950/90 border-amber-400 shadow-lg ring-2 ring-amber-500/30'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="text-xs font-bold text-amber-400">PROTOTYPE DESIGN</div>
-                  <div className="text-[11px] text-slate-400">Rapid layout & user interaction</div>
+                  <div className="text-[10px] font-mono font-bold text-amber-400">PHASE 2</div>
+                  <div className="text-xs font-bold text-white">PROTOTYPE DESIGN</div>
+                  <div className="text-[11px] text-slate-400">Rapid layout, screen flow & interface model</div>
                 </div>
 
-                <ArrowDown className="w-4 h-4 text-slate-500 mx-auto" />
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-3.5 h-3.5 text-slate-600" />
+                </div>
 
                 {/* Step 3 */}
                 <div
                   onClick={() => setActiveStep(3)}
-                  className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
+                  className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
                     activeStep === 3
-                      ? 'bg-amber-950/80 border-amber-400 shadow-md ring-1 ring-amber-400'
-                      : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                      ? 'bg-amber-950/90 border-amber-400 shadow-lg ring-2 ring-amber-500/30'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="text-xs font-bold text-amber-400">PROTOTYPE IMPLEMENTATION</div>
-                  <div className="text-[11px] text-slate-400">Working prototype / interactive mockup</div>
+                  <div className="text-[10px] font-mono font-bold text-amber-400">PHASE 3</div>
+                  <div className="text-xs font-bold text-white">PROTOTYPE IMPLEMENTATION</div>
+                  <div className="text-[11px] text-slate-400">Construct working screens & mock services</div>
                 </div>
 
-                <ArrowDown className="w-4 h-4 text-slate-500 mx-auto" />
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-3.5 h-3.5 text-slate-600" />
+                </div>
 
                 {/* Step 4 */}
                 <div
                   onClick={() => setActiveStep(4)}
-                  className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
+                  className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
                     activeStep === 4
-                      ? 'bg-amber-950/80 border-amber-400 shadow-md ring-1 ring-amber-400'
-                      : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                      ? 'bg-amber-950/90 border-amber-400 shadow-lg ring-2 ring-amber-500/30'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="text-xs font-bold text-amber-400">PROTOTYPE EVALUATION</div>
-                  <div className="text-[11px] text-slate-400">BY CUSTOMER & USERS</div>
+                  <div className="text-[10px] font-mono font-bold text-amber-400">PHASE 4</div>
+                  <div className="text-xs font-bold text-white">PROTOTYPE EVALUATION</div>
+                  <div className="text-[11px] text-slate-400">BY CUSTOMER & REAL USERS</div>
                 </div>
 
-                <ArrowDown className="w-4 h-4 text-slate-500 mx-auto" />
-
-                {/* Decision Diamond (Step 5) */}
-                <div className="relative">
-                  <div
-                    onClick={() => setActiveStep(5)}
-                    className={`mx-auto w-44 py-3 px-2 text-center rounded-lg border cursor-pointer transition-all ${
-                      activeStep === 5
-                        ? 'bg-purple-950/80 border-purple-400 shadow-md ring-1 ring-purple-400'
-                        : 'bg-slate-900 border-purple-500/50 hover:border-purple-400'
-                    }`}
-                  >
-                    <div className="text-xs font-bold text-purple-300">REQUIREMENTS FULFILLED?</div>
-                    <div className="text-[10px] text-slate-400">Acceptance Decision</div>
-                  </div>
-
-                  {/* NO branch to right and loop back */}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full hidden sm:flex items-center pl-2">
-                    <ArrowRight className="w-4 h-4 text-rose-400" />
-                    <span className="text-[10px] font-bold text-rose-400 bg-rose-950/70 border border-rose-500/30 px-1 rounded">
-                      NO
-                    </span>
-                  </div>
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-3.5 h-3.5 text-slate-600" />
                 </div>
 
-                {/* Feedback Box */}
-                <div className="mt-2 bg-rose-950/30 border border-rose-500/30 p-2 rounded-lg text-center">
-                  <div className="text-xs font-semibold text-rose-300 flex items-center justify-center gap-1.5">
-                    <RefreshCw className="w-3.5 h-3.5 text-rose-400" />
-                    DEMANDS FOR CORRECTIONS, CHANGES AND ADDITIONS
+                {/* Step 5: Decision Diamond */}
+                <div
+                  onClick={() => setActiveStep(5)}
+                  className={`w-full text-center p-3.5 rounded-xl border cursor-pointer transition-all relative ${
+                    activeStep === 5
+                      ? 'bg-purple-950/90 border-purple-400 shadow-xl ring-2 ring-purple-500/30'
+                      : 'bg-slate-900 border-purple-500/40 hover:border-purple-400'
+                  }`}
+                >
+                  <div className="text-[10px] font-mono font-bold text-purple-300">PHASE 5 DECISION GATE</div>
+                  <div className="text-xs font-extrabold text-white">REQUIREMENTS FULFILLED?</div>
+                  <div className="text-[10px] text-slate-400">Customer Acceptance Evaluation</div>
+                </div>
+
+                {/* The NO loopback channel */}
+                <div className="mt-2 bg-rose-950/30 border border-rose-500/40 p-2.5 rounded-xl text-center space-y-1">
+                  <div className="text-xs font-bold text-rose-300 flex items-center justify-center gap-1.5 font-mono">
+                    <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                    <span>[NO] DEMANDS FOR CORRECTIONS, CHANGES & ADDITIONS</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">Loops back to Prototype Design until customer satisfies requirements</div>
+                  <div className="text-[11px] text-slate-400">
+                    Loops back to <strong>Prototype Design</strong> until customer needs are fully met
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
-              <span>YES</span>
-              <ArrowDown className="w-4 h-4" />
+            {/* Exit Arrow to Phase 6 */}
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold font-mono py-1">
+              <span>[YES] Customer Acceptance Granted</span>
+              <ArrowDown className="w-4 h-4 text-emerald-400 animate-bounce" />
             </div>
 
-            {/* Step 6 */}
-            <div
-              onClick={() => setActiveStep(6)}
-              className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
-                activeStep === 6
-                  ? 'bg-emerald-950/70 border-emerald-400 shadow-md ring-1 ring-emerald-400'
-                  : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-              }`}
-            >
-              <div className="text-xs font-bold text-emerald-400">SYSTEM TESTS & ACCEPTANCE TESTS</div>
-              <div className="text-[11px] text-slate-400">Full system verification against specifications</div>
-            </div>
+            {/* Downstream Production Phases */}
+            <div className="w-full space-y-2">
+              {/* Step 6 */}
+              <div
+                onClick={() => setActiveStep(6)}
+                className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
+                  activeStep === 6
+                    ? 'bg-emerald-950/80 border-emerald-400 shadow-lg ring-2 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="text-[10px] font-mono font-bold text-emerald-400">PHASE 6</div>
+                <div className="text-xs font-bold text-white">SYSTEM TESTS & ACCEPTANCE TESTS</div>
+                <div className="text-[11px] text-slate-400">Full verification & validation against complete specifications</div>
+              </div>
 
-            <ArrowDown className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center justify-center">
+                <ArrowDown className="w-3.5 h-3.5 text-slate-600" />
+              </div>
 
-            {/* Step 7 */}
-            <div
-              onClick={() => setActiveStep(7)}
-              className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
-                activeStep === 7
-                  ? 'bg-emerald-950/70 border-emerald-400 shadow-md ring-1 ring-emerald-400'
-                  : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-              }`}
-            >
-              <div className="text-xs font-bold text-emerald-400">SYSTEM CONVERSION</div>
-              <div className="text-[11px] text-slate-400">Cutover, data transition, and production rollout</div>
-            </div>
+              {/* Step 7 */}
+              <div
+                onClick={() => setActiveStep(7)}
+                className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
+                  activeStep === 7
+                    ? 'bg-emerald-950/80 border-emerald-400 shadow-lg ring-2 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="text-[10px] font-mono font-bold text-emerald-400">PHASE 7</div>
+                <div className="text-xs font-bold text-white">SYSTEM CONVERSION</div>
+                <div className="text-[11px] text-slate-400">Data migration, user training, cutover to live production</div>
+              </div>
 
-            <ArrowDown className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center justify-center">
+                <ArrowDown className="w-3.5 h-3.5 text-slate-600" />
+              </div>
 
-            {/* Step 8 */}
-            <div
-              onClick={() => setActiveStep(8)}
-              className={`w-full text-center p-2.5 rounded-lg border cursor-pointer transition-all ${
-                activeStep === 8
-                  ? 'bg-emerald-950/70 border-emerald-400 shadow-md ring-1 ring-emerald-400'
-                  : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-              }`}
-            >
-              <div className="text-xs font-bold text-emerald-400">SYSTEM OPERATION & MAINTENANCE</div>
-              <div className="text-[11px] text-slate-400">Corrective, adaptive, and perfective maintenance</div>
+              {/* Step 8 */}
+              <div
+                onClick={() => setActiveStep(8)}
+                className={`w-full text-center p-3 rounded-xl border cursor-pointer transition-all ${
+                  activeStep === 8
+                    ? 'bg-emerald-950/80 border-emerald-400 shadow-lg ring-2 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="text-[10px] font-mono font-bold text-emerald-400">PHASE 8</div>
+                <div className="text-xs font-bold text-white">SYSTEM OPERATION & MAINTENANCE</div>
+                <div className="text-[11px] text-slate-400">Corrective, adaptive, and perfective maintenance</div>
+              </div>
             </div>
 
           </div>
         </div>
 
-        {/* Detail Inspector Deck */}
+        {/* DETAIL INSPECTOR DECK */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stage Details & SQA Checkpoints</h4>
-            {activeStep ? (
-              (() => {
-                const s = steps.find(x => x.id === activeStep)!;
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-center font-bold">
-                        {s.id}
-                      </span>
-                      <div>
-                        <div className="text-sm font-bold text-white">{s.name}</div>
-                        <div className="text-xs text-slate-400">{s.subtitle}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded border border-slate-800">
-                      {s.desc}
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-slate-400">Actors / Responsibilities:</div>
-                      <div className="text-xs text-slate-200">{s.role}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold text-emerald-400">Integrated SQA Activity:</div>
-                      <div className="text-xs text-emerald-200/90">{s.qa}</div>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div className="py-8 text-center text-xs text-slate-400">
-                Click any phase box on the diagram to inspect its description, participants, and integrated SQA quality assurance activities.
+          <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
+                Phase #{currentStep.id} Details & SQA Activities
+              </span>
+              {currentStep.isLoop && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold">
+                  Iterative Loop Component
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-base font-bold text-white">{currentStep.name}</div>
+                <div className="text-xs text-slate-400">{currentStep.subtitle}</div>
               </div>
-            )}
+
+              <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+                {currentStep.desc}
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-[11px] font-mono text-slate-400 uppercase font-semibold">Responsible Actors:</div>
+                <div className="text-xs text-slate-200 bg-slate-900/50 p-2 rounded-lg border border-slate-800/80">
+                  {currentStep.role}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-[11px] font-mono text-emerald-400 uppercase font-semibold">Integrated SQA Activity:</div>
+                <div className="text-xs text-emerald-200/90 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-500/20">
+                  {currentStep.qa}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-4 text-xs space-y-2.5">
-            <h4 className="font-semibold text-amber-300 text-xs flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-amber-400" />
-              Key Exam Points to Draw:
+          {/* Exam Drawing Advice */}
+          <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 text-xs space-y-2 shadow-md">
+            <h4 className="font-bold text-amber-300 text-xs flex items-center gap-1.5 font-mono">
+              <Info className="w-3.5 h-3.5 text-amber-400" />
+              Must-Include Exam Diagram Elements (Topic 7, Slide 11):
             </h4>
-            <ul className="space-y-1.5 text-slate-300 pl-4 list-disc">
-              <li>Must show the <strong>Customer Requirements</strong> starting block.</li>
-              <li>Must illustrate the closed loop: <strong>Prototype Design → Implementation → Evaluation → "Fulfilled?" → (NO) Demands for changes → back to Design</strong>.</li>
-              <li>Must show the exit path upon <strong>(YES)</strong> leading into <strong>System Tests → Conversion → Operation/Maintenance</strong>.</li>
+            <ul className="space-y-1.5 text-slate-300 pl-4 list-disc text-[11px] leading-snug">
+              <li>Must start with <strong>Requirements Determination by Customer</strong>.</li>
+              <li>Must clearly illustrate the closed cycle: <strong>Prototype Design → Implementation → Evaluation → Requirements Fulfilled?</strong>.</li>
+              <li>Must draw the <strong>NO branch</strong> labeled <em>"Demands for corrections, changes and additions"</em> looping back to Design.</li>
+              <li>Must draw the <strong>YES branch</strong> leading into <strong>System Tests → Conversion → Operation</strong>.</li>
             </ul>
           </div>
         </div>

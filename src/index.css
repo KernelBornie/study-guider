@@ -76,4 +76,132 @@
     border: none;
     color: #e2e8f0;
   }
+
+  /* Mermaid SVG Clarity & Contrast Enhancements */
+  svg {
+    shape-rendering: geometricPrecision;
+    text-rendering: geometricPrecision;
+  }
+
+  svg[id^="mermaid-"],
+  .mermaid,
+  .mermaid-svg {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  }
+
+  /* Nodes: Bold, bright white text with luminous borders */
+  svg[id^="mermaid-"] .node rect,
+  svg[id^="mermaid-"] .node circle,
+  svg[id^="mermaid-"] .node polygon,
+  svg[id^="mermaid-"] .node path,
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon,
+  .mermaid .node path {
+    stroke-width: 2px !important;
+    stroke: #3b82f6 !important;
+    fill: #0f172a !important;
+  }
+
+  svg[id^="mermaid-"] .node .label,
+  svg[id^="mermaid-"] .node text,
+  .mermaid .node .label,
+  .mermaid .node text {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    letter-spacing: 0.01em !important;
+  }
+
+  /* Arrows and flow lines: Bright blue with clear visibility */
+  svg[id^="mermaid-"] .edgePath .path,
+  .mermaid .edgePath .path {
+    stroke: #60a5fa !important;
+    stroke-width: 2.2px !important;
+  }
+
+  svg[id^="mermaid-"] .edgePath marker path,
+  .mermaid .edgePath marker path {
+    fill: #60a5fa !important;
+    stroke: #60a5fa !important;
+  }
+
+  /* Edge labels: Clean dark pill with bright crisp text */
+  svg[id^="mermaid-"] .edgeLabel,
+  .mermaid .edgeLabel {
+    background-color: #020617 !important;
+    fill: #93c5fd !important;
+    color: #93c5fd !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 3px 6px !important;
+    border-radius: 6px !important;
+  }
+
+  svg[id^="mermaid-"] .edgeLabel rect,
+  .mermaid .edgeLabel rect {
+    fill: #020617 !important;
+    stroke: #3b82f6 !important;
+    stroke-width: 1px !important;
+    rx: 4px !important;
+    ry: 4px !important;
+  }
+
+  /* Subgraphs / Clusters */
+  svg[id^="mermaid-"] .cluster rect,
+  .mermaid .cluster rect {
+    fill: rgba(15, 23, 42, 0.75) !important;
+    stroke: #64748b !important;
+    stroke-width: 1.8px !important;
+    stroke-dasharray: 6 3 !important;
+    rx: 8px !important;
+  }
+
+  svg[id^="mermaid-"] .cluster .label,
+  .mermaid .cluster .label {
+    fill: #38bdf8 !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  /* Sequence diagrams: Actors, lifelines, and messages */
+  svg[id^="mermaid-"] .actor,
+  .mermaid .actor {
+    stroke: #a855f7 !important;
+    fill: #1e1b4b !important;
+    stroke-width: 2px !important;
+    font-weight: 700 !important;
+    rx: 8px !important;
+  }
+
+  svg[id^="mermaid-"] text.actor > tspan,
+  .mermaid text.actor > tspan {
+    fill: #f8fafc !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+  }
+
+  svg[id^="mermaid-"] .messageLine0,
+  svg[id^="mermaid-"] .messageLine1,
+  .mermaid .messageLine0,
+  .mermaid .messageLine1 {
+    stroke: #38bdf8 !important;
+    stroke-width: 2px !important;
+  }
+
+  svg[id^="mermaid-"] .messageText,
+  .mermaid .messageText {
+    fill: #f1f5f9 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+  }
+
+  svg[id^="mermaid-"] .sequenceNumber,
+  .mermaid .sequenceNumber {
+    fill: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 13px !important;
+  }
 }
